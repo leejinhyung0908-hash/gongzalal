@@ -20,7 +20,7 @@ try:
 except ImportError:
     Vector = None  # type: ignore
 
-from sqlalchemy import Date, DateTime, Enum, SmallInteger, String, func
+from sqlalchemy import Date, DateTime, Enum, SmallInteger, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.domain.shared.bases import Base
@@ -73,6 +73,10 @@ class User(Base):
         DateTime(timezone=True),
         nullable=True
     )
+
+    # 소셜 로그인 연동
+    social_id: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True)
+    provider: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
 
     # ─────────────────────────────────────────────────────────────
     # 벡터 임베딩 컬럼 추가

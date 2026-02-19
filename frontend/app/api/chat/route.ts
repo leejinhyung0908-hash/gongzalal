@@ -21,6 +21,9 @@ export async function POST(request: Request) {
     const body: ChatRequest = await request.json();
     const { question, mode = "rag_openai", thread_id } = body;
 
+    // 브라우저에서 받은 쿠키를 백엔드로 전달 (JWT 인증용)
+    const cookieHeader = request.headers.get("cookie") || "";
+
     if (!question || !question.trim()) {
       return Response.json(
         { error: "질문이 비어있습니다." },
@@ -61,6 +64,7 @@ export async function POST(request: Request) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
         },
         body: JSON.stringify({ question: question.trim(), mode, thread_id }),
         // 타임아웃 설정 (60초 - 모델 로드 시간 고려)

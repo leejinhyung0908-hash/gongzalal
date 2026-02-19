@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { logout } from "@/lib/auth-api";
 import {
     Dialog,
     DialogContent,
@@ -47,6 +48,16 @@ export default function ChatbotUI() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     // 멀티턴 대화 세션 ID (컴포넌트 수명 동안 유지)
     const threadIdRef = useRef<string>(generateSessionId());
+
+    const handleLogout = async () => {
+        setIsMenuOpen(false);
+        const success = await logout();
+        if (success) {
+            window.location.href = "/login";
+        } else {
+            alert("로그아웃에 실패했습니다. 다시 시도해주세요.");
+        }
+    };
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -250,6 +261,8 @@ export default function ChatbotUI() {
                         <div className="menu-divider" />
                         <button className="menu-item" onClick={() => { setIsMenuOpen(false); setIsSettingsOpen(true); }}>설정</button>
                         <button className="menu-item" onClick={() => { setIsMenuOpen(false); setIsInfoOpen(true); }}>정보</button>
+                        <div className="menu-divider" />
+                        <button className="menu-item menu-item-logout" onClick={handleLogout}>로그아웃</button>
                     </nav>
                 </SheetContent>
             </Sheet>
@@ -656,6 +669,15 @@ export default function ChatbotUI() {
                     height: 1px;
                     background: rgba(255, 255, 255, 0.06);
                     margin: 8px 0;
+                }
+
+                :global(.menu-item-logout) {
+                    color: rgba(255, 100, 100, 0.6);
+                }
+
+                :global(.menu-item-logout:hover) {
+                    color: rgba(255, 100, 100, 1);
+                    background: rgba(255, 100, 100, 0.08);
                 }
 
                 /* ── 모바일 반응형 ── */

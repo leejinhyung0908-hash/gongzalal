@@ -115,6 +115,35 @@ class UserRepository:
 
         return self._row_to_dict(row)
 
+    def get_by_social_id(self, social_id: str) -> Optional[Dict[str, Any]]:
+        """소셜 로그인 ID로 사용자 조회.
+
+        Args:
+            social_id: 소셜 로그인 ID
+
+        Returns:
+            사용자 데이터 또는 None
+        """
+        conn = self._get_connection()
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, display_name, age, employment_status,
+                       base_score, daily_study_time, target_date,
+                       registration_date, last_login
+                FROM users
+                WHERE social_id = %s
+                """,
+                (social_id,)
+            )
+            row = cur.fetchone()
+
+        if not row:
+            return None
+
+        return self._row_to_dict(row)
+
     def get_by_display_name(self, display_name: str) -> Optional[Dict[str, Any]]:
         """표시 이름으로 사용자 조회.
 

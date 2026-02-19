@@ -170,7 +170,10 @@ app.add_middleware(
 # - /api/v1/admin/... → 기타 admin용 엔드포인트
 api_prefix = "/api/v1/admin"
 
-from backend.api.v1.admin import chat_router, exam_router, mcp_router, user_router, commentary_router, question_router, solving_log_router, mentoring_knowledge_router, study_plan_router, audio_note_router
+from backend.api.v1.admin import chat_router, exam_router, mcp_router, user_router, commentary_router, question_router, solving_log_router, mentoring_knowledge_router, study_plan_router, audio_note_router, auth_router
+
+# auth_router는 /api/auth/... 경로를 직접 정의 → prefix 없이 등록
+app.include_router(auth_router.router, prefix="")
 
 # chat_router는 내부 prefix("/api")를 그대로 사용 → 최종 경로: /api/chat
 app.include_router(chat_router.router, prefix="")

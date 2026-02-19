@@ -1,5 +1,7 @@
 "use client";
 
+import { handleKakaoLogin, handleNaverLogin, handleGoogleLogin } from "@/service/mainservice";
+
 const PARTICLES = [
     { left: "3%", delay: "0s", duration: "9s", opacity: 0.15 },
     { left: "12%", delay: "3s", duration: "11s", opacity: 0.22 },
@@ -45,13 +47,13 @@ export default function LoginPage() {
 
                 {/* 소셜 로그인 아이콘 */}
                 <div className="social-buttons">
-                    <button className="social-btn kakao" onClick={() => { /* TODO: 카카오 로그인 */ }}>
+                    <button className="social-btn kakao" onClick={handleKakaoLogin}>
                         <img src="/images/login/kakao.png" alt="카카오 로그인" className="social-icon" />
                     </button>
-                    <button className="social-btn naver" onClick={() => { /* TODO: 네이버 로그인 */ }}>
+                    <button className="social-btn naver" onClick={handleNaverLogin}>
                         <img src="/images/login/naver.png" alt="네이버 로그인" className="social-icon" />
                     </button>
-                    <button className="social-btn google" onClick={() => { /* TODO: 구글 로그인 */ }}>
+                    <button className="social-btn google" onClick={handleGoogleLogin}>
                         <img src="/images/login/google.png" alt="구글 로그인" className="social-icon" />
                     </button>
                 </div>

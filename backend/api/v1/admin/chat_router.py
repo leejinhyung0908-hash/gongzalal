@@ -4,7 +4,7 @@
 - exam 관련: ExamFlow로 라우팅
 - 그 외: 일반 chat 처리
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 import psycopg
 
 from backend.dependencies import get_db_connection, get_llm, get_qlora_service
@@ -32,9 +32,40 @@ router = APIRouter(prefix="/api", tags=["chat"])
 _chat_flow = ChatFlow()
 
 
+def _extract_user_id_from_cookie(http_request: Request, conn: psycopg.Connection) -> int | None:
+    """JWT 쿠키에서 로그인된 사용자의 DB user_id를 추출한다."""
+    import logging
+    _logger = logging.getLogger(__name__)
+    try:
+        token = http_request.cookies.get("Authorization")
+        if not token:
+            return None
+
+        from backend.api.v1.admin.auth_router import verify_jwt
+        payload = verify_jwt(token)
+        if not payload or payload.get("type") != "access":
+            return None
+
+        social_id = payload.get("sub")
+        if not social_id:
+            return None
+
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE social_id = %s", (social_id,))
+            row = cur.fetchone()
+            if row:
+                _logger.info(f"[ChatRouter] JWT에서 DB user_id 추출: {row[0]}")
+                return row[0]
+    except Exception as e:
+        _logger.warning(f"[ChatRouter] user_id 추출 실패 (기본값 사용): {e}")
+    return None
+
+
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(
-    request: ChatRequest, conn: psycopg.Connection = Depends(get_db_connection)
+    request: ChatRequest,
+    http_request: Request,
+    conn: psycopg.Connection = Depends(get_db_connection),
 ) -> ChatResponse:
     """챗봇 엔드포인트 (종합 라우터).
 
@@ -74,14 +105,18 @@ async def chat_endpoint(
         except Exception as llm_err:
             logger.warning(f"[ChatRouter] EXAONE 로드 실패 (폴백 처리됨): {llm_err}")
 
+        # JWT 쿠키에서 로그인된 사용자의 DB user_id 추출
+        db_user_id = _extract_user_id_from_cookie(http_request, conn)
+
         # ChatFlow를 통해 요청 처리 (DB 연결 + EXAONE LLM을 전달하여 멘토링 RAG 사용 가능)
-        logger.info(f"[ChatRouter] ChatFlow로 요청 전달: {question[:50]}...")
+        logger.info(f"[ChatRouter] ChatFlow로 요청 전달: {question[:50]}... (user_id={db_user_id})")
         flow_result = await _chat_flow.process_chat_request(
             request_text=question,
             request_data={
                 "question": question,
                 "top_k": request.top_k,
                 "thread_id": request.thread_id,
+                "user_id": db_user_id,
             },
             mode=mode,
             conn=conn,

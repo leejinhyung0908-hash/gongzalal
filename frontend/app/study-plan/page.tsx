@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { logout } from "@/lib/auth-api";
+import { useUser } from "@/lib/hooks/useUser";
 
 // ============================================================================
 // 타입 정의
@@ -82,7 +84,8 @@ type PlanJson = {
 // ============================================================================
 
 export default function StudyPlanPage() {
-    const [userId, setUserId] = useState("1");
+    const { user: loggedInUser, loading: userLoading } = useUser();
+    const [userId, setUserId] = useState("");
     const [analysis, setAnalysis] = useState<Analysis | null>(null);
     const [planJson, setPlanJson] = useState<PlanJson | null>(null);
     const [generationMethod, setGenerationMethod] = useState<string | null>(null);
@@ -91,6 +94,22 @@ export default function StudyPlanPage() {
     const [isLoadingPlan, setIsLoadingPlan] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"analysis" | "plan">("analysis");
+
+    // 로그인된 사용자 ID 자동 설정
+    useEffect(() => {
+        if (loggedInUser?.id) {
+            setUserId(String(loggedInUser.id));
+        }
+    }, [loggedInUser]);
+
+    const handleLogout = async () => {
+        const success = await logout();
+        if (success) {
+            window.location.href = "/login";
+        } else {
+            alert("로그아웃에 실패했습니다.");
+        }
+    };
 
     // 풀이 로그 분석만
     const handleAnalyze = async () => {
@@ -201,19 +220,26 @@ export default function StudyPlanPage() {
                 </div>
                 <div className="header-right">
                     <a href="/" className="home-link">홈</a>
+                    <button onClick={handleLogout} className="logout-link">로그아웃</button>
                 </div>
             </header>
 
             {/* 사용자 선택 + 액션 버튼 */}
             <div className="action-bar">
                 <div className="user-input-group">
-                    <label className="input-label">사용자 ID</label>
+                    <label className="input-label">
+                        {loggedInUser?.display_name
+                            ? `${loggedInUser.display_name} 님`
+                            : userLoading ? "로딩 중..." : "사용자 ID"}
+                    </label>
                     <input
                         type="number"
                         value={userId}
                         onChange={(e) => setUserId(e.target.value)}
                         className="user-input"
                         min="1"
+                        readOnly={!!loggedInUser?.id}
+                        style={loggedInUser?.id ? { opacity: 0.7, cursor: "default" } : {}}
                     />
                 </div>
                 <button
@@ -544,6 +570,7 @@ export default function StudyPlanPage() {
                     border-bottom: 1px solid rgba(255,255,255,0.04);
                 }
                 .header-left { display: flex; align-items: center; gap: 16px; }
+                .header-right { display: flex; align-items: center; gap: 14px; }
                 .back-link, .home-link {
                     color: rgba(255,255,255,0.35);
                     text-decoration: none;
@@ -551,6 +578,18 @@ export default function StudyPlanPage() {
                     transition: color 0.2s;
                 }
                 .back-link:hover, .home-link:hover { color: rgba(255,255,255,0.7); }
+
+                .logout-link {
+                    color: rgba(255,100,100,0.5);
+                    background: none;
+                    border: none;
+                    font-size: 0.8rem;
+                    font-family: inherit;
+                    cursor: pointer;
+                    transition: color 0.2s;
+                    padding: 0;
+                }
+                .logout-link:hover { color: rgba(255,100,100,0.9); }
                 .page-title {
                     font-size: 1.1rem;
                     font-weight: 600;

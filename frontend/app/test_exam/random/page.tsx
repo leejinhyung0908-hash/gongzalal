@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useUser } from "@/lib/hooks/useUser";
 
 // ── 타입 ──
 type QuestionImage = {
@@ -50,6 +51,9 @@ function formatTime(seconds: number): string {
 }
 
 export default function RandomExamPage() {
+    // ── 로그인 사용자 ──
+    const { user: loggedInUser } = useUser();
+
     // ── 상태 ──
     const [images, setImages] = useState<QuestionImage[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -340,7 +344,7 @@ export default function RandomExamPage() {
             const res = await fetch(`${backendUrl}/api/v1/admin/solving-logs/batch`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: 1, logs }),
+                body: JSON.stringify({ user_id: loggedInUser?.id ?? 1, logs }),
             });
 
             if (res.ok) {

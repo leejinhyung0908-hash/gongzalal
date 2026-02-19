@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { logout } from "@/lib/auth-api";
 
 const categories = [
     { id: "commentary", name: "해설", path: "/upload/commentary" },
@@ -17,6 +18,15 @@ export default function UploadLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
+
+    const handleLogout = async () => {
+        const success = await logout();
+        if (success) {
+            window.location.href = "/login";
+        } else {
+            alert("로그아웃에 실패했습니다.");
+        }
+    };
 
     return (
         <div className="upload-layout">
@@ -44,6 +54,8 @@ export default function UploadLayout({
                     <a href="/chat" className="footer-link">채팅으로</a>
                     <span className="footer-divider">·</span>
                     <a href="/" className="footer-link">메인으로</a>
+                    <span className="footer-divider">·</span>
+                    <button onClick={handleLogout} className="footer-link footer-logout">로그아웃</button>
                 </div>
             </aside>
 
@@ -184,6 +196,18 @@ export default function UploadLayout({
                 .footer-divider {
                     color: rgba(255, 255, 255, 0.1);
                     font-size: 0.7rem;
+                }
+
+                .footer-logout {
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    font-family: inherit;
+                    padding: 0;
+                }
+
+                .footer-logout:hover {
+                    color: rgba(255, 100, 100, 0.7) !important;
                 }
 
                 /* ── 콘텐츠 ── */

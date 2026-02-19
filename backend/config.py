@@ -152,5 +152,25 @@ class Settings:
         self.JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
         self.JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
+        # 소셜 로그인 설정
+        self.KAKAO_REST_API_KEY = os.getenv("KAKAO_REST_API_KEY", "")
+        self.KAKAO_CLIENT_SECRET = os.getenv("KAKAO_CLIENT_SECRET", "")
+        self.KAKAO_REDIRECT_URI = os.getenv("KAKAO_REDIRECT_URI", "")
+
+        self.NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID", "")
+        self.NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET", "")
+        self.NAVER_REDIRECT_URI = os.getenv("NAVER_REDIRECT_URI", "")
+
+        self.GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+        self.GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+        self.GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "")
+
+        # 프론트엔드 콜백 URL
+        self.FRONT_LOGIN_CALLBACK_URL = os.getenv("FRONT_LOGIN_CALLBACK_URL", "http://localhost:3000")
+
+        # 쿠키 설정
+        self.COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
+        self.COOKIE_SAME_SITE = os.getenv("COOKIE_SAME_SITE", "lax")
+
 
 settings = Settings()

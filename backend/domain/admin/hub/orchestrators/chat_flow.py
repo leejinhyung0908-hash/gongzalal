@@ -700,10 +700,23 @@ class ChatFlow:
         conn = request_data.get("_conn")
         llm = request_data.get("_llm")
 
-        logger.info(f"[ChatFlow] StudyPlanFlow로 요청 전달 (조회 모드): {request_text[:50]}...")
-
         try:
-            user_id = request_data.get("user_id", 1)
+            user_id = request_data.get("user_id")
+
+            if user_id is None:
+                logger.warning("[ChatFlow] user_id가 None입니다. 로그인이 필요합니다.")
+                result = {
+                    "success": True,
+                    "answer": (
+                        "로그인이 필요해요!\n\n"
+                        "학습 계획을 조회하려면 먼저 로그인해주세요.\n"
+                        "상단의 로그인 버튼을 눌러 카카오/네이버/구글 계정으로 로그인할 수 있습니다."
+                    ),
+                    "mode": "study_plan",
+                }
+                return {**state, "result": result}
+
+            logger.info(f"[ChatFlow] StudyPlanFlow로 요청 전달 (조회 모드, user_id={user_id}): {request_text[:50]}...")
 
             # 채팅에서는 항상 기존 학습계획 조회 (생성은 학습분석 페이지에서만)
             plan_request_data = {
@@ -747,7 +760,14 @@ class ChatFlow:
             else:
                 action = "read"
 
-            user_id = request_data.get("user_id", 1)
+            user_id = request_data.get("user_id")
+            if user_id is None:
+                result = {
+                    "success": True,
+                    "answer": "로그인이 필요해요!\n\n풀이 기록을 조회하려면 먼저 로그인해주세요.",
+                    "mode": "solving_log",
+                }
+                return {**state, "result": result}
 
             log_result = await self._solving_log_flow.process_solving_log_request(
                 request_text=request_text,
@@ -924,30 +944,19 @@ class ChatFlow:
 
     def _format_flow_answer(self, flow_result: dict, mode: str) -> str:
         """Flow 결과를 답변 문자열로 포맷팅."""
-        if not flow_result.get("success", False):
-            return flow_result.get("error", "처리 중 오류가 발생했습니다.")
 
-        if mode == "question":
-            questions = flow_result.get("questions", [])
-            if questions:
-                lines = [f"검색 결과 {len(questions)}개의 문제를 찾았습니다:"]
-                for q in questions[:5]:
-                    lines.append(f"- {q.get('exam_year')}년 {q.get('exam_type')} {q.get('subject')} {q.get('question_no')}번")
-                return "\n".join(lines)
-            return "검색 결과가 없습니다."
-
-        elif mode == "study_plan":
-            # 기존 학습계획 조회 결과 포맷팅
+        # study_plan은 success=False일 때도 안내 메시지를 보여줘야 하므로 먼저 처리
+        if mode == "study_plan":
             plan = flow_result.get("plan")
 
-            # 학습계획이 없는 경우 → 가상모의고사 안내
-            if not plan:
+            # 학습계획이 없는 경우 (success=False 또는 plan이 None)
+            if not flow_result.get("success", False) or not plan:
                 return (
-                    "아직 학습 계획이 생성되지 않았어요! 📋\n\n"
+                    "아직 학습 계획이 생성되지 않았어요!\n\n"
                     "가상모의고사를 통해 본인의 강점과 취약점인 과목을 알아보세요~\n"
-                    "공잘알이 정밀한 분석을 통해 세심한 학습계획을 짜드릴게요! 💪\n\n"
-                    "👉 상단 메뉴의 [학습 분석 & AI 플랜] 페이지에서 "
-                    "풀이 분석 → AI 플랜 생성을 진행해주세요."
+                    "공잘알이 정밀한 분석을 통해 세심한 학습계획을 짜드릴게요!\n\n"
+                    "상단 메뉴의 [학습 분석 & AI 플랜] 페이지에서 "
+                    "풀이 분석 -> AI 플랜 생성을 진행해주세요."
                 )
 
             # 학습계획이 있는 경우 → plan_json 내용을 채팅에 보기 좋게 출력
@@ -1003,6 +1012,19 @@ class ChatFlow:
                 parts.append(f"\n🔥 {motivation}")
 
             return "\n".join(parts)
+
+        # study_plan 이외 모드: success=False이면 에러 메시지 반환
+        if not flow_result.get("success", False):
+            return flow_result.get("error", "처리 중 오류가 발생했습니다.")
+
+        if mode == "question":
+            questions = flow_result.get("questions", [])
+            if questions:
+                lines = [f"검색 결과 {len(questions)}개의 문제를 찾았습니다:"]
+                for q in questions[:5]:
+                    lines.append(f"- {q.get('exam_year')}년 {q.get('exam_type')} {q.get('subject')} {q.get('question_no')}번")
+                return "\n".join(lines)
+            return "검색 결과가 없습니다."
 
         elif mode == "solving_log":
             if "stats" in flow_result:

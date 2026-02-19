@@ -81,23 +81,21 @@ def is_redis_available() -> bool:
         return False
 
 
-# JWT 토큰 관련 Redis 키 패턴
+# JWT 토큰 관련 Redis 키 패턴 (Access Token만 Redis에 저장)
 JWT_TOKEN_PREFIX = "jwt:access_token:"
 JWT_USER_PREFIX = "jwt:user:"
-JWT_REFRESH_PREFIX = "jwt:refresh_token:"
 
 # BullMQ 관련 Redis 키 패턴
 BULLMQ_QUEUE_PREFIX = "bull:"
 BULLMQ_JOB_PREFIX = "bullmq:job:"
 
 
-def store_jwt_token(user_id: str, access_token: str, refresh_token: Optional[str] = None, expires_in: int = 1800) -> bool:
-    """JWT access token을 Redis에 저장.
+def store_jwt_token(user_id: str, access_token: str, expires_in: int = 1800) -> bool:
+    """JWT access token을 Redis에 저장. (Refresh token은 Neon DB에 저장)
 
     Args:
         user_id: 사용자 ID
         access_token: JWT access token
-        refresh_token: JWT refresh token (선택)
         expires_in: 토큰 만료 시간 (초, 기본값: 30분)
 
     Returns:
@@ -128,26 +126,11 @@ def store_jwt_token(user_id: str, access_token: str, refresh_token: Optional[str
             access_token
         )
 
-        # Refresh token 저장 (있는 경우)
-        if refresh_token:
-            refresh_key = f"{JWT_REFRESH_PREFIX}{refresh_token}"
-            refresh_data = {
-                "user_id": user_id,
-                "access_token": access_token,
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }
-            # Refresh token은 더 긴 만료 시간 (7일)
-            redis_client.setex(
-                refresh_key,
-                7 * 24 * 60 * 60,  # 7일
-                json.dumps(refresh_data)
-            )
-
-        logger.info(f"[Redis] JWT 토큰 저장 완료: user_id={user_id}")
+        logger.info(f"[Redis] JWT access token 저장 완료: user_id={user_id}")
         return True
 
     except Exception as e:
-        logger.error(f"[Redis] JWT 토큰 저장 실패: {e}")
+        logger.error(f"[Redis] JWT access token 저장 실패: {e}")
         return False
 
 

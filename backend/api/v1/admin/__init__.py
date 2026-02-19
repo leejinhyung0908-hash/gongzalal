@@ -23,6 +23,7 @@ from . import study_plan_router  # noqa: F401
 from . import solving_log_router  # noqa: F401
 from . import audio_note_router  # noqa: F401
 from . import mentoring_knowledge_router  # noqa: F401
+from . import auth_router  # noqa: F401
 
 __all__ = [
     "chat_router",
@@ -35,4 +36,5 @@ __all__ = [
     "solving_log_router",
     "audio_note_router",
     "mentoring_knowledge_router",
+    "auth_router",
 ]
