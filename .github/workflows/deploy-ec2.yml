@@ -1,0 +1,340 @@
+name: Deploy FastAPI to EC2
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'backend/**'  # backend 폴더 변경시에만 실행
+  workflow_dispatch:  # 수동 실행 가능
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+
+    # working-directory를 제거하고 명시적으로 backend/ 경로를 사용
+    # defaults:
+    #   run:
+    #     working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" | tr -d '\r' > ~/.ssh/ec2_key.pem
+          chmod 600 ~/.ssh/ec2_key.pem
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        shell: bash
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          # backend 폴더를 EC2로 동기화
+          echo "🚀 배포 시작..."
+
+          # EC2 경로 설정 (EC2 서버의 경로 - 명시적으로 지정)
+          EC2_USER="${{ secrets.EC2_USER }}"
+          EC2_HOST="${{ secrets.EC2_HOST }}"
+          EC2_APP_DIR="/home/${EC2_USER}/rag"
+          EC2_BACKEND_DIR="${EC2_APP_DIR}/backend"
+
+          # EC2에서 디렉토리 미리 생성
+          echo "📁 EC2 디렉토리 생성 중: ${EC2_BACKEND_DIR}"
+          ssh -i ~/.ssh/ec2_key.pem -o StrictHostKeyChecking=no \
+            ${EC2_USER}@${EC2_HOST} \
+            "mkdir -p ${EC2_BACKEND_DIR} && chmod 755 ${EC2_BACKEND_DIR}"
+
+          # rsync로 backend 폴더만 전송
+          # working-directory를 제거했으므로, 현재 디렉토리는 리포지토리 루트
+          echo "📤 backend 폴더 동기화 중..."
+          echo "   현재 작업 디렉토리: $(pwd)"
+          echo "   소스: backend/ (명시적 경로)"
+          echo "   소스 내용 (backend/ 디렉토리):"
+          ls -la backend/ | head -10
+          echo "   requirements.txt 존재 여부:"
+          [ -f "backend/requirements.txt" ] && echo "   ✅ requirements.txt 존재" || echo "   ❌ requirements.txt 없음"
+          echo "   대상 경로: ${EC2_USER}@${EC2_HOST}:${EC2_BACKEND_DIR}/"
+
+          # rsync: 현재 디렉토리(backend/)의 모든 내용을 EC2의 ${EC2_BACKEND_DIR}/로 복사
+          # 중요: rsync의 동작 방식
+          # - rsync . target/  -> 현재 디렉토리의 내용을 target/에 복사 (권장)
+          # - rsync ./ target/ -> 현재 디렉토리의 내용을 target/에 복사 (동일)
+          # - rsync . target   -> 현재 디렉토리를 target이라는 이름으로 복사 (잘못됨)
+          # 따라서 대상 경로 끝에 반드시 / 를 붙여야 함
+          echo "   rsync 실행: $(pwd)/ -> ${EC2_BACKEND_DIR}/"
+          echo "   현재 디렉토리: $(pwd)"
+          echo "   대상 경로: ${EC2_BACKEND_DIR}/ (끝에 슬래시 있음)"
+          echo "   복사할 파일 목록:"
+          ls -la . | head -10
+
+          # rsync 실행 및 결과 확인
+          # 중요: working-directory가 backend이므로 현재 디렉토리는 backend/
+          # rsync의 올바른 사용법:
+          # - rsync source/ target/  -> source의 내용을 target에 복사
+          # - rsync source target/   -> source를 target 안에 복사 (source 디렉토리 자체가 복사됨)
+          # 우리는 backend/의 내용을 /home/ubuntu/rag/backend/에 복사해야 함
+          # 따라서 . 을 사용하면 현재 디렉토리(backend/)의 내용이 복사됨
+          REMOTE_TARGET="${EC2_USER}@${EC2_HOST}:${EC2_BACKEND_DIR}"
+          echo "   최종 대상 경로: ${REMOTE_TARGET}"
+          echo "   주의: 대상 경로 끝에 / 없음 (rsync가 디렉토리 자체를 처리하도록)"
+
+          # rsync 실행 전 기존 backend 디렉토리 삭제 (깨끗한 상태로 시작)
+          echo "   기존 백엔드 디렉토리 정리 중..."
+          ssh -i ~/.ssh/ec2_key.pem -o StrictHostKeyChecking=no \
+            ${EC2_USER}@${EC2_HOST} \
+            "rm -rf ${EC2_BACKEND_DIR}/* ${EC2_BACKEND_DIR}/.* 2>/dev/null || true"
+
+          # rsync 실행: backend/ 폴더의 모든 내용을 EC2의 ${EC2_BACKEND_DIR}/로 복사
+          # working-directory를 제거했으므로, 명시적으로 backend/ 경로를 사용
+          echo "   rsync 실행 전 최종 확인:"
+          echo "   - 현재 디렉토리: $(pwd)"
+          echo "   - 소스: backend/ (명시적 경로)"
+          echo "   - 대상: ${REMOTE_TARGET}/"
+
+          # rsync 실행: backend/ 폴더의 모든 내용을 복사
+          # backend/ 를 소스로 사용하면 backend/의 내용이 복사됨
+          if rsync -avz --delete \
+            -e "ssh -i ~/.ssh/ec2_key.pem -o StrictHostKeyChecking=no" \
+            --exclude='.git' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='.env' \
+            --exclude='.pytest_cache' \
+            --exclude='*.log' \
+            --exclude='.DS_Store' \
+            --exclude='venv' \
+            --exclude='.venv' \
+            --exclude='node_modules' \
+            --exclude='.gitignore' \
+            backend/ \
+            "${REMOTE_TARGET}/"; then
+            echo "✅ rsync 성공"
+          else
+            echo "❌ rsync 실패"
+            exit 1
+          fi
+
+          # rsync 후 즉시 확인
+          echo "   rsync 직후 확인:"
+          ssh -i ~/.ssh/ec2_key.pem -o StrictHostKeyChecking=no \
+            ${EC2_USER}@${EC2_HOST} \
+            "echo 'BACKEND_DIR 내용:' && ls -la ${EC2_BACKEND_DIR}/ 2>&1 | head -10 && \
+             echo 'requirements.txt 존재 여부:' && \
+             ([ -f ${EC2_BACKEND_DIR}/requirements.txt ] && echo '✅ 존재' || echo '❌ 없음')"
+
+          # rsync 후 디렉토리 확인
+          echo "🔍 rsync 후 디렉토리 확인..."
+          ssh -i ~/.ssh/ec2_key.pem -o StrictHostKeyChecking=no \
+            ${EC2_USER}@${EC2_HOST} \
+            "set -e && \
+             echo '=== 디렉토리 확인 ===' && \
+             echo 'APP_DIR: ${EC2_APP_DIR}' && \
+             echo 'BACKEND_DIR: ${EC2_BACKEND_DIR}' && \
+             echo '' && \
+             echo 'APP_DIR 존재 여부:' && [ -d ${EC2_APP_DIR} ] && echo '✅ 존재' || echo '❌ 없음' && \
+             echo 'BACKEND_DIR 존재 여부:' && [ -d ${EC2_BACKEND_DIR} ] && echo '✅ 존재' || echo '❌ 없음' && \
+             echo '' && \
+             echo 'APP_DIR 내용:' && ls -la ${EC2_APP_DIR}/ 2>&1 | head -15 && \
+             echo '' && \
+             echo 'BACKEND_DIR 내용:' && ls -la ${EC2_BACKEND_DIR}/ 2>&1 | head -15 && \
+             echo '' && \
+             echo 'requirements.txt 위치 확인:' && \
+             if [ -f ${EC2_BACKEND_DIR}/requirements.txt ]; then \
+               echo '✅ ${EC2_BACKEND_DIR}/requirements.txt 존재'; \
+             else \
+               echo '❌ ${EC2_BACKEND_DIR}/requirements.txt 없음'; \
+               echo '⚠️  파일이 잘못된 위치에 복사되었을 수 있습니다.'; \
+               if [ -f ${EC2_APP_DIR}/requirements.txt ]; then \
+                 echo '⚠️  ${EC2_APP_DIR}/requirements.txt 존재 (잘못된 위치!)'; \
+                 echo '⚠️  파일을 올바른 위치로 이동합니다...'; \
+                 mv ${EC2_APP_DIR}/requirements.txt ${EC2_BACKEND_DIR}/requirements.txt && \
+                 echo '✅ 파일 이동 완료'; \
+               fi; \
+             fi && \
+             echo '' && \
+             echo '최종 확인: BACKEND_DIR의 requirements.txt' && \
+             [ -f ${EC2_BACKEND_DIR}/requirements.txt ] && echo '✅ requirements.txt가 올바른 위치에 있습니다.' || echo '❌ requirements.txt가 여전히 없습니다.'"
+
+          # EC2에서 배포 스크립트 실행
+          # heredoc에서 변수 확장을 위해 따옴표 없이 ENDSSH 사용
+          ssh -i ~/.ssh/ec2_key.pem -o StrictHostKeyChecking=no \
+            ${EC2_USER}@${EC2_HOST} << ENDSSH
+            set -e
+
+            APP_DIR="\${HOME}/rag"
+            BACKEND_DIR="\${APP_DIR}/backend"
+
+            echo "📥 backend 폴더 동기화 완료"
+            echo "🔍 디렉토리 구조 확인..."
+            echo "   HOME: \${HOME}"
+            echo "   APP_DIR: \${APP_DIR}"
+            echo "   BACKEND_DIR: \${BACKEND_DIR}"
+            echo "   현재 위치: \$(pwd)"
+
+            # 디렉토리 확인
+            if [ -d "\${APP_DIR}" ]; then
+              echo "✅ APP_DIR 존재: \${APP_DIR}"
+              echo "   내용:"
+              ls -la "\${APP_DIR}" | head -10
+            else
+              echo "❌ APP_DIR 없음: \${APP_DIR}"
+              echo "   생성 중..."
+              mkdir -p "\${APP_DIR}"
+            fi
+
+            if [ -d "\${BACKEND_DIR}" ]; then
+              echo "✅ BACKEND_DIR 존재: \${BACKEND_DIR}"
+              echo "   내용:"
+              ls -la "\${BACKEND_DIR}" | head -15
+            else
+              echo "❌ BACKEND_DIR 없음: \${BACKEND_DIR}"
+              echo "   생성 중..."
+              mkdir -p "\${BACKEND_DIR}"
+            fi
+
+            # requirements.txt가 잘못된 위치에 있으면 이동
+            if [ ! -f "\${BACKEND_DIR}/requirements.txt" ] && [ -f "\${APP_DIR}/requirements.txt" ]; then
+              echo "⚠️  requirements.txt가 잘못된 위치에 있습니다. 이동 중..."
+              mv "\${APP_DIR}/requirements.txt" "\${BACKEND_DIR}/requirements.txt"
+              echo "✅ 파일 이동 완료"
+            fi
+
+            # 디스크 공간 확인
+            echo "💾 디스크 공간 확인:"
+            df -h
+
+            # 불필요한 패키지 정리
+            echo "🧹 시스템 정리 중..."
+            sudo apt-get clean || true
+            sudo apt-get autoremove -y || true
+
+            # 필수 패키지 설치 확인
+            echo "📦 필수 패키지 확인 중..."
+            if ! dpkg -l | grep -q python3-venv; then
+              echo "📥 python3-venv 패키지 설치 중..."
+              sudo apt-get update -qq
+              sudo apt-get install -y python3-venv python3-pip
+            fi
+
+            # Python 가상환경 설정
+            if [ ! -d "\${APP_DIR}/venv" ]; then
+              echo "🐍 Python 가상환경 생성..."
+              python3 -m venv "\${APP_DIR}/venv"
+            fi
+
+            echo "📚 의존성 설치..."
+            source "\${APP_DIR}/venv/bin/activate"
+            pip install --upgrade pip
+
+            # backend 디렉토리로 이동
+            echo "📂 작업 디렉토리로 이동: \${BACKEND_DIR}"
+            if [ ! -d "\${BACKEND_DIR}" ]; then
+              echo "❌ 오류: \${BACKEND_DIR} 디렉토리가 존재하지 않습니다."
+              echo "   생성 중..."
+              mkdir -p "\${BACKEND_DIR}"
+            fi
+
+            # 디렉토리 내용 확인
+            echo "📋 디렉토리 내용 (이동 전):"
+            ls -la "\${BACKEND_DIR}" || echo "디렉토리 읽기 실패"
+
+            cd "\${BACKEND_DIR}" || {
+              echo "❌ cd 실패: \${BACKEND_DIR}"
+              echo "   현재 위치: \$(pwd)"
+              exit 1
+            }
+
+            echo "✅ 현재 디렉토리: \$(pwd)"
+            echo "📄 파일 목록:"
+            ls -la
+
+            # requirements.txt 확인 및 복구
+            if [ ! -f "requirements.txt" ]; then
+              echo "❌ requirements.txt 파일이 없습니다!"
+              echo "   디렉토리 내용:"
+              ls -la
+              echo "   상위 디렉토리 확인:"
+              ls -la ..
+
+              # 상위 디렉토리에서 requirements.txt 찾아서 이동
+              if [ -f "\${APP_DIR}/requirements.txt" ]; then
+                echo "⚠️  상위 디렉토리에서 requirements.txt 발견. 이동 중..."
+                mv "\${APP_DIR}/requirements.txt" "\${BACKEND_DIR}/requirements.txt"
+                echo "✅ 파일 이동 완료"
+              else
+                echo "❌ requirements.txt를 찾을 수 없습니다."
+                exit 1
+              fi
+            fi
+
+            echo "✅ requirements.txt 발견, 의존성 설치 시작..."
+
+            # 디스크 공간 확인
+            echo "💾 디스크 공간 확인:"
+            df -h
+
+            # pip 캐시 정리
+            echo "🧹 pip 캐시 정리 중..."
+            pip cache purge || true
+
+            # CPU 전용 PyTorch 설치 (CUDA 없이, 디스크 공간 절약)
+            # torch는 매우 크므로 CPU 버전만 설치
+            echo "📦 CPU 전용 PyTorch 설치 중..."
+            pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
+
+            # requirements.txt에서 torch 제외하고 나머지 설치
+            echo "📦 나머지 의존성 설치 중..."
+            # requirements.txt를 임시로 수정하여 torch 제외
+            grep -v "^torch" requirements.txt > requirements_temp.txt || cp requirements.txt requirements_temp.txt
+            pip install -r requirements_temp.txt --no-cache-dir
+            rm -f requirements_temp.txt
+
+            echo "✅ 의존성 설치 완료"
+
+            # 환경 변수 파일 확인
+            if [ ! -f "\$APP_DIR/.env" ]; then
+              echo "⚠️  .env 파일이 없습니다. 수동으로 생성해주세요."
+            fi
+
+            # systemd 서비스 재시작
+            if systemctl is-active --quiet rag-api.service 2>/dev/null; then
+              echo "🔄 서비스 재시작..."
+              sudo systemctl daemon-reload
+              sudo systemctl restart rag-api.service
+              echo "✅ 서비스 재시작 완료"
+            else
+              echo "⚠️  rag-api.service가 설정되지 않았습니다."
+              echo "   scripts/rag-api.service 파일을 /etc/systemd/system/에 복사해주세요."
+            fi
+
+            # 헬스 체크
+            echo "🏥 헬스 체크..."
+            sleep 5
+            if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+              echo "✅ 배포 성공: 서비스가 정상적으로 응답합니다."
+            else
+              echo "⚠️  배포 완료: 서비스 상태를 확인해주세요."
+              echo "   로그 확인: sudo journalctl -u rag-api.service -n 50"
+            fi
+          ENDSSH
+
+      - name: Health Check
+        shell: bash
+        run: |
+          sleep 10
+          if curl -f http://${{ secrets.EC2_HOST }}:8000/health > /dev/null 2>&1; then
+            echo "✅ 외부 헬스 체크 성공"
+          else
+            echo "⚠️  외부 헬스 체크 실패 (보안 그룹에서 포트 8000이 열려있는지 확인)"
+          fi || true

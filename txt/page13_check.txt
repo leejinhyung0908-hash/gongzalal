@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import pdfplumber; pdf = pdfplumber.open('data/gongmuwon/raw/commentary/250621 지방직 9급 영어 해설 성정혜.pdf'); page = pdf.pages[12]; text = page.extract_text(); start = text.find('6.'); end = text.find('8.'); print(text[start:end] if start != -1 and end != -1 else text[-3000:])
+                                                                                                                                                                                                                        ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'cp949' codec can't encode character '\u275a' in position 9: illegal multibyte sequence

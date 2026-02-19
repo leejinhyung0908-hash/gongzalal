@@ -1,0 +1,273 @@
+# ============================================
+# Git & Version Control
+# ============================================
+.git/
+.gitignore
+.gitattributes
+
+# ============================================
+# Docker Files
+# ============================================
+docker-compose.yaml
+docker-compose.yml
+**/docker-compose.yaml
+**/docker-compose.yml
+**/Dockerfile
+.dockerignore
+**/.dockerignore
+
+# ============================================
+# Environment Variables
+# ============================================
+.env
+.env.*
+.env.local
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+**/.env
+**/.env.*
+
+# ============================================
+# Node.js / Next.js Build Artifacts
+# ============================================
+node_modules/
+**/node_modules/
+.pnp/
+**/.pnp/
+.pnp.js
+**/.pnp.js
+.next/
+**/.next/
+out/
+**/out/
+dist/
+**/dist/
+build/
+**/build/
+*.tsbuildinfo
+**/*.tsbuildinfo
+next-env.d.ts
+**/next-env.d.ts
+.eslintcache
+**/.eslintcache
+.vercel/
+**/.vercel/
+
+# ============================================
+# Java / Gradle Build Artifacts
+# ============================================
+.gradle/
+**/.gradle/
+gradle/
+**/gradle/
+!gradle/wrapper/
+!**/gradle/wrapper/
+*.iml
+**/*.iml
+*.ipr
+**/*.ipr
+*.iws
+**/*.iws
+.idea/
+**/.idea/
+out/
+**/out/
+bin/
+**/bin/
+target/
+**/target/
+.apt_generated/
+**/.apt_generated/
+.factorypath
+**/.factorypath
+.classpath
+**/.classpath
+.project
+**/.project
+.settings/
+**/.settings/
+.springBeans
+**/.springBeans
+.sts4-cache/
+**/.sts4-cache/
+.nb-gradle/
+**/.nb-gradle/
+nbproject/
+**/nbproject/
+nbbuild/
+**/nbbuild/
+nbdist/
+**/nbdist/
+
+# ============================================
+# Python Build Artifacts
+# ============================================
+__pycache__/
+**/__pycache__/
+*.py[cod]
+**/*.py[cod]
+*.pyc
+**/*.pyc
+*.pyo
+**/*.pyo
+*.pyd
+**/*.pyd
+.Python
+**/.Python
+venv/
+**/venv/
+env/
+**/env/
+ENV/
+**/ENV/
+.venv/
+**/.venv/
+pip-log.txt
+**/pip-log.txt
+pip-delete-this-directory.txt
+**/pip-delete-this-directory.txt
+*.egg-info/
+**/*.egg-info/
+.eggs/
+**/.eggs/
+*.egg
+**/*.egg
+dist/
+**/dist/
+build/
+**/build/
+.pytest_cache/
+**/.pytest_cache/
+.coverage
+**/.coverage
+htmlcov/
+**/htmlcov/
+.tox/
+**/.tox/
+.mypy_cache/
+**/.mypy_cache/
+.dmypy.json
+**/.dmypy.json
+dmypy.json
+**/dmypy.json
+
+# ============================================
+# IDE & Editor Files
+# ============================================
+.vscode/
+**/.vscode/
+.idea/
+**/.idea/
+*.swp
+**/*.swp
+*.swo
+**/*.swo
+*~
+**/*~
+*.sublime-project
+**/*.sublime-project
+*.sublime-workspace
+**/*.sublime-workspace
+
+# ============================================
+# OS Files
+# ============================================
+.DS_Store
+**/.DS_Store
+Thumbs.db
+**/Thumbs.db
+*.pem
+**/*.pem
+
+# ============================================
+# Logs & Debug Files
+# ============================================
+*.log
+**/*.log
+logs/
+**/logs/
+npm-debug.log*
+**/npm-debug.log*
+yarn-debug.log*
+**/yarn-debug.log*
+yarn-error.log*
+**/yarn-error.log*
+pnpm-debug.log*
+**/pnpm-debug.log*
+lerna-debug.log*
+**/lerna-debug.log*
+
+# ============================================
+# Test & Coverage
+# ============================================
+coverage/
+**/coverage/
+.nyc_output/
+**/.nyc_output/
+test-results/
+**/test-results/
+reports/
+**/reports/
+**/test/
+**/test-results/
+
+# ============================================
+# Documentation
+# ============================================
+*.md
+**/*.md
+!README.md
+**/README.md
+ARCHITECTURE.md
+**/ARCHITECTURE.md
+docs/
+**/docs/
+
+# ============================================
+# Temporary Files
+# ============================================
+tmp/
+**/tmp/
+temp/
+**/temp/
+*.tmp
+**/*.tmp
+*.bak
+**/*.bak
+*.swp
+**/*.swp
+
+# ============================================
+# Data & Vector Stores (Python RAG)
+# ============================================
+vector_db/
+**/vector_db/
+data/
+**/data/
+*.faiss
+**/*.faiss
+*.pkl
+**/*.pkl
+*.db
+**/*.db
+
+# ============================================
+# Package Manager Lock Files (Optional - keep if needed for builds)
+# ============================================
+# Uncomment if you want to exclude lock files
+# package-lock.json
+# **/package-lock.json
+# yarn.lock
+# **/yarn.lock
+# pnpm-lock.yaml
+# **/pnpm-lock.yaml
+
+# ============================================
+# PDF & Large Files
+# ============================================
+*.pdf
+**/*.pdf
+
+*.pem

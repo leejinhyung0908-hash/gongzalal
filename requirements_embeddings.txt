@@ -1,0 +1,13 @@
+# Embedding 생성 및 Neon DB 저장에 필요한 패키지
+
+# 데이터베이스 연결
+psycopg[binary]>=3.1.0
+pgvector>=0.2.0
+
+# KURE-v1 Embedding 모델 (한국어 특화)
+sentence-transformers>=2.2.0
+torch>=2.0.0
+
+# 환경 변수 관리
+python-dotenv>=1.0.0
+

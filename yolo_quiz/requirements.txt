@@ -1,0 +1,35 @@
+# ============================================================================
+# YOLO 기출 문항 인식 서비스 - 의존성
+# RTX 3050 (6-8GB VRAM) 최적화
+# ============================================================================
+
+# === YOLO 모델 ===
+ultralytics>=8.3.0          # YOLO11 (Nano 모델 사용)
+torch==2.1.0+cu118          # PyTorch CUDA 11.8
+torchvision==0.16.0+cu118
+
+# === PDF 처리 ===
+PyMuPDF==1.24.0             # PDF → 이미지 변환 (fitz)
+pdf2image==1.17.0           # 대체 PDF 변환
+Pillow==10.2.0              # 이미지 처리
+
+# === 데이터베이스 ===
+psycopg[binary]==3.1.18     # PostgreSQL (NeonDB)
+sqlalchemy==2.0.25          # ORM
+
+# === 웹 API ===
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6     # 파일 업로드
+
+# === 유틸리티 ===
+numpy==1.26.3
+opencv-python==4.9.0.80     # 이미지 처리/크롭
+python-dotenv==1.0.0        # 환경변수
+tqdm==4.66.1                # 진행바
+pydantic==2.5.3
+
+# === 라벨링 도구 (선택) ===
+# labelImg는 pip 대신 별도 설치 권장
+
+

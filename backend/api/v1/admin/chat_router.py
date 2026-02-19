@@ -1,0 +1,250 @@
+"""채팅 라우터 (종합 라우터).
+
+모든 요청을 ChatFlow로 전달하여 적절한 Flow로 라우팅합니다.
+- exam 관련: ExamFlow로 라우팅
+- 그 외: 일반 chat 처리
+"""
+from fastapi import APIRouter, Depends, HTTPException
+import psycopg
+
+from backend.dependencies import get_db_connection, get_llm, get_qlora_service
+from backend.domain.admin.models.transfers.chat_model import (
+    ChatRequest,
+    ChatResponse,
+    KoELECTRAMeta,
+    QLoRARequest,
+    QLoRAResponse,
+)
+from backend.core.utils.database import search_similar
+from backend.domain.admin.spokes.agents.retrieval import (
+    local_only,
+    openai_only,
+    rag_answer,
+    rag_with_llm,
+    rag_with_local_llm,
+)
+from backend.config import settings
+from backend.domain.admin.hub.orchestrators.chat_flow import ChatFlow
+
+router = APIRouter(prefix="/api", tags=["chat"])
+
+# Orchestrator 인스턴스 (싱글톤 패턴)
+_chat_flow = ChatFlow()
+
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat_endpoint(
+    request: ChatRequest, conn: psycopg.Connection = Depends(get_db_connection)
+) -> ChatResponse:
+    """챗봇 엔드포인트 (종합 라우터).
+
+    ChatFlow를 통해 요청을 분석하여 적절한 Flow로 라우팅:
+    - exam 관련: ExamFlow로 라우팅
+    - 그 외: 일반 chat 처리 (기존 RAG/OpenAI 로직)
+
+    mode 옵션:
+    - "rag": RAG만 사용 (규칙 기반, OpenAI 없이)
+    - "openai": OpenAI만 사용 (RAG 없이)
+    - "rag_openai": RAG + OpenAI (기본값)
+    - "rag_local": RAG + 로컬 LLM (backend.llm)
+    - "local": 로컬 LLM만 사용 (RAG 없이, backend.llm)
+    - "graph": LangGraph + 로컬 midm 모델 (Agent 워크플로우)
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        question = request.question.strip()
+        if not question:
+            raise HTTPException(status_code=400, detail="질문이 비어있습니다.")
+
+        mode = request.mode.lower()
+        if mode not in ("rag", "openai", "rag_openai", "rag_local", "local", "graph"):
+            raise HTTPException(
+                status_code=400,
+                detail='mode는 "rag", "openai", "rag_openai", "rag_local", "local", "graph" 중 하나여야 합니다.',
+            )
+
+        # EXAONE LLM 로드 (멘토링 RAG 및 로컬 LLM 모드에서 사용)
+        llm = None
+        try:
+            llm = get_llm()
+            if not llm.is_loaded():
+                llm.load()
+        except Exception as llm_err:
+            logger.warning(f"[ChatRouter] EXAONE 로드 실패 (폴백 처리됨): {llm_err}")
+
+        # ChatFlow를 통해 요청 처리 (DB 연결 + EXAONE LLM을 전달하여 멘토링 RAG 사용 가능)
+        logger.info(f"[ChatRouter] ChatFlow로 요청 전달: {question[:50]}...")
+        flow_result = await _chat_flow.process_chat_request(
+            request_text=question,
+            request_data={
+                "question": question,
+                "top_k": request.top_k,
+                "thread_id": request.thread_id,
+            },
+            mode=mode,
+            conn=conn,
+            llm=llm,
+        )
+
+        # ChatFlow 결과 확인
+        result_mode = flow_result.get("mode", "chat")
+
+        # KoELECTRA 메타데이터 추출
+        koelectra_raw = flow_result.get("koelectra")
+        koelectra_meta = KoELECTRAMeta(**koelectra_raw) if koelectra_raw else None
+
+        # BLOCK 처리 (KoELECTRA가 도메인 외 질문으로 판단)
+        if result_mode == "block":
+            answer = flow_result.get("answer", "공무원 시험 준비에 관한 질문을 해주세요.")
+            return ChatResponse(
+                answer=answer,
+                retrieved_docs=None,
+                mode="block",
+                top_k=request.top_k,
+                koelectra=koelectra_meta,
+            )
+
+        # ExamFlow에서 처리된 경우 (exam 관련 요청)
+        if result_mode == "exam":
+            answer = flow_result.get("answer", flow_result.get("error", "응답을 생성하지 못했습니다."))
+            return ChatResponse(
+                answer=answer,
+                retrieved_docs=None,
+                mode="exam",
+                top_k=request.top_k,
+                koelectra=koelectra_meta,
+            )
+
+        # 멘토링 RAG에서 처리된 경우 (합격 수기 기반 답변)
+        if result_mode == "mentoring":
+            answer = flow_result.get("answer", flow_result.get("error", "응답을 생성하지 못했습니다."))
+            retrieved_docs = flow_result.get("retrieved_docs")
+            return ChatResponse(
+                answer=answer,
+                retrieved_docs=retrieved_docs,
+                mode="mentoring",
+                top_k=request.top_k,
+                koelectra=koelectra_meta,
+            )
+
+        # ChatFlow에서 답변이 생성된 경우 (study_plan, solving_log, chat 등)
+        flow_answer = flow_result.get("answer")
+        if flow_answer is not None:
+            return ChatResponse(
+                answer=flow_answer,
+                retrieved_docs=flow_result.get("retrieved_docs"),
+                mode=result_mode,
+                top_k=request.top_k,
+                koelectra=koelectra_meta,
+            )
+
+        # 일반 chat 처리 (ChatFlow에서 처리되지 않은 경우)
+        # 기존 RAG/OpenAI 로직 사용
+        answer: str
+        retrieved_docs: list[str] | None = None
+
+        if mode == "openai":
+            # OpenAI만 사용 (RAG 없이)
+            if not settings.OPENAI_API_KEY:
+                raise HTTPException(
+                    status_code=400,
+                    detail="OPENAI_API_KEY가 설정되지 않아 OpenAI 모드를 사용할 수 없습니다.",
+                )
+            answer = openai_only(question)
+
+        elif mode == "local":
+            # 로컬 EXAONE LLM만 사용 (RAG 없이)
+            if llm is None or not llm.is_loaded():
+                raise HTTPException(
+                    status_code=503,
+                    detail="EXAONE 모델이 로드되지 않아 local 모드를 사용할 수 없습니다.",
+                )
+            answer = local_only(question, llm)
+
+        elif mode == "graph":
+            # TODO: LangGraph + 로컬 midm 모델 (verdict_agent 추후 구현 예정)
+            raise HTTPException(
+                status_code=501,
+                detail="graph 모드는 현재 구현 예정입니다."
+            )
+
+        elif mode == "rag":
+            # RAG만 사용 (규칙 기반, OpenAI 없이)
+            results = search_similar(conn, question, top_k=request.top_k)
+            retrieved_docs = [content for content, _ in results]
+            answer = rag_answer(question, retrieved_docs)
+
+        elif mode == "rag_openai":
+            # RAG + OpenAI
+            results = search_similar(conn, question, top_k=request.top_k)
+            retrieved_docs = [content for content, _ in results]
+
+            if settings.OPENAI_API_KEY:
+                answer = rag_with_llm(question, retrieved_docs)
+            else:
+                # OpenAI 키가 없으면 RAG만 사용
+                answer = rag_answer(question, retrieved_docs)
+
+        else:  # mode == "rag_local"
+            # RAG + EXAONE 로컬 LLM
+            results = search_similar(conn, question, top_k=request.top_k)
+            retrieved_docs = [content for content, _ in results]
+
+            if llm is not None and llm.is_loaded():
+                answer = rag_with_local_llm(question, retrieved_docs, llm)
+            else:
+                # EXAONE 미로드 시 RAG만으로 답변
+                answer = rag_answer(question, retrieved_docs)
+
+        return ChatResponse(
+            answer=answer, retrieved_docs=retrieved_docs, mode=mode,
+            top_k=request.top_k, koelectra=koelectra_meta,
+        )
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.error(f"[ChatRouter] /chat 오류: {exc}", exc_info=True)
+        print(f"[FastAPI] /chat 오류: {exc}", flush=True)
+        raise HTTPException(status_code=500, detail=f"서버 오류: {str(exc)}")
+
+
+@router.post("/chat/qlora", response_model=QLoRAResponse)
+async def qlora_chat_endpoint(
+    request: QLoRARequest,
+    qlora_service=Depends(get_qlora_service),
+) -> QLoRAResponse:
+    """QLoRA 모델을 사용한 채팅 엔드포인트.
+
+    LoRA 어댑터가 적용된 모델을 사용하여 텍스트를 생성합니다.
+    """
+    try:
+        prompt = request.prompt.strip()
+        if not prompt:
+            raise HTTPException(status_code=400, detail="프롬프트가 비어있습니다.")
+
+        # 모델이 로드되지 않았으면 로드
+        if not qlora_service.is_loaded():
+            qlora_service.load()
+
+        # 텍스트 생성
+        response_text = qlora_service.generate(
+            prompt=prompt,
+            max_new_tokens=request.max_new_tokens,
+            temperature=request.temperature,
+            top_p=request.top_p,
+        )
+
+        return QLoRAResponse(response=response_text)
+
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        print(f"[FastAPI] /chat/qlora 오류: {exc}", flush=True)
+        raise HTTPException(status_code=500, detail=f"서버 오류: {str(exc)}")
+

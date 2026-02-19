@@ -1,0 +1,6 @@
+오류 발생: 'cp949' codec can't encode character '\u275a' in position 189: illegal multibyte sequence
+Traceback (most recent call last):
+  File "C:\Users\hi\Desktop\private\test_extract_page9.py", line 18, in <module>
+    print(text)
+    ~~~~~^^^^^^
+UnicodeEncodeError: 'cp949' codec can't encode character '\u275a' in position 189: illegal multibyte sequence

@@ -1,0 +1,7 @@
+path: \\?\C:\Users\hi\Desktop\private\yolo_quiz\data\yolo_dataset
+train: images/train
+val: images/train
+test:
+
+names:
+    0: question

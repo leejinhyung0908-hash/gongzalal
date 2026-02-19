@@ -1,0 +1,10 @@
+{
+  "name": "LangChain Chatbot",
+  "short_name": "LC Chat",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020817",
+  "theme_color": "#020817",
+  "lang": "ko-KR",
+  "icons": []
+}
