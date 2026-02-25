@@ -65,7 +65,37 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"[FastAPI] LLM 모델 레지스트리 등록 실패 (계속 진행): {e}")
 
-        # 중앙 MCP 서버 초기화
+        # ── EXAONE 모델 사전 로드 (싱글톤) ──
+        # 서버 시작 시 1회 로드하여 ModelLoader 캐시에 저장.
+        # 이후 get_llm() 호출 시 캐시된 인스턴스를 재사용하므로 중복 로드 방지.
+        try:
+            from backend.dependencies import get_llm
+            logger.info("[FastAPI] EXAONE 모델 사전 로드 시작...")
+            print("[FastAPI] EXAONE 모델 사전 로드 시작...", flush=True)
+            _global_llm = get_llm()
+            if not _global_llm.is_loaded():
+                _global_llm.load()
+            logger.info("[FastAPI] EXAONE 모델 사전 로드 완료 ✅")
+            print("[FastAPI] EXAONE 모델 사전 로드 완료 ✅", flush=True)
+        except Exception as e:
+            logger.warning(f"[FastAPI] EXAONE 사전 로드 실패 (요청 시 lazy 로드): {e}")
+            print(f"[FastAPI] EXAONE 사전 로드 실패 (요청 시 lazy 로드): {e}", flush=True)
+
+        # ── KURE-v1 임베딩 모델 사전 로드 (싱글톤) ──
+        # 서버 시작 시 1회 로드하여 모듈 전역 _model에 캐시.
+        # 이후 generate_embedding() 호출 시 로드 지연 없이 즉시 사용.
+        try:
+            from backend.core.utils.embedding import preload_model as preload_kure
+            logger.info("[FastAPI] KURE-v1 임베딩 모델 사전 로드 시작...")
+            print("[FastAPI] KURE-v1 임베딩 모델 사전 로드 시작...", flush=True)
+            preload_kure()
+            logger.info("[FastAPI] KURE-v1 임베딩 모델 사전 로드 완료 ✅")
+            print("[FastAPI] KURE-v1 임베딩 모델 사전 로드 완료 ✅", flush=True)
+        except Exception as e:
+            logger.warning(f"[FastAPI] KURE-v1 사전 로드 실패 (요청 시 lazy 로드): {e}")
+            print(f"[FastAPI] KURE-v1 사전 로드 실패 (요청 시 lazy 로드): {e}", flush=True)
+
+        # 중앙 MCP 서버 초기화 (EXAONE은 위에서 로드한 싱글톤을 공유)
         try:
             from backend.domain.admin.hub.mcp import get_central_mcp_server
 
@@ -131,6 +161,15 @@ async def lifespan(app: FastAPI):
     yield
 
     # 종료 시
+    # EXAONE 모델 언로드 (GPU 메모리 해제)
+    try:
+        from backend.core.llm.loader import get_loader
+        loader = get_loader()
+        loader.unload_all()
+        logger.info("[FastAPI] LLM 모델 언로드 완료 (GPU 메모리 해제)")
+    except Exception as e:
+        logger.warning(f"[FastAPI] LLM 모델 언로드 실패: {e}")
+
     # 임베딩 워커 중지
     try:
         from backend.core.workers.embedding_worker import stop_embedding_worker

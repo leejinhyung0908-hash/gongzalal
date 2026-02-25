@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 from typing import Optional, Dict, Any, List
-from datetime import datetime, date
+from datetime import datetime
 
 from pydantic import BaseModel, Field
 
@@ -29,7 +29,11 @@ class UserTransfer(BaseModel):
     employment_status: Optional[str] = Field(default=None, description="직장 상태")
     base_score: Optional[int] = Field(default=None, description="초기 베이스 점수")
     daily_study_time: Optional[int] = Field(default=None, description="일일 학습 시간 (분)")
-    target_date: Optional[date] = Field(default=None, description="목표 시험 날짜")
+    study_duration: Optional[str] = Field(default=None, description="목표 수험 기간")
+    is_first_timer: Optional[bool] = Field(default=None, description="초시 여부")
+    target_position: Optional[str] = Field(default=None, description="목표 직렬")
+    weak_subjects: Optional[str] = Field(default=None, description="취약 과목 (쉼표 구분)")
+    strong_subjects: Optional[str] = Field(default=None, description="강점 과목 (쉼표 구분)")
 
     # 타임스탬프
     registration_date: Optional[datetime] = Field(default=None, description="등록 시각")
@@ -41,7 +45,6 @@ class UserTransfer(BaseModel):
         from_attributes = True
         json_encoders = {
             datetime: lambda v: v.isoformat() if v else None,
-            date: lambda v: v.isoformat() if v else None,
         }
 
 
@@ -53,7 +56,7 @@ class UserCreateRequest(BaseModel):
     employment_status: Optional[str] = Field(default=None, description="직장 상태")
     base_score: Optional[int] = Field(default=None, ge=0, le=100, description="초기 점수")
     daily_study_time: Optional[int] = Field(default=None, ge=0, description="일일 학습 시간 (분)")
-    target_date: Optional[date] = Field(default=None, description="목표 시험 날짜")
+    study_duration: Optional[str] = Field(default=None, max_length=50, description="목표 수험 기간")
 
     class Config:
         json_schema_extra = {
@@ -63,7 +66,7 @@ class UserCreateRequest(BaseModel):
                 "employment_status": "학생",
                 "base_score": 70,
                 "daily_study_time": 180,
-                "target_date": "2026-06-01"
+                "study_duration": "6개월"
             }
         }
 
@@ -76,7 +79,11 @@ class UserUpdateRequest(BaseModel):
     employment_status: Optional[str] = Field(default=None)
     base_score: Optional[int] = Field(default=None, ge=0, le=100)
     daily_study_time: Optional[int] = Field(default=None, ge=0)
-    target_date: Optional[date] = Field(default=None)
+    study_duration: Optional[str] = Field(default=None, max_length=50)
+    is_first_timer: Optional[bool] = Field(default=None)
+    target_position: Optional[str] = Field(default=None, max_length=50)
+    weak_subjects: Optional[str] = Field(default=None)
+    strong_subjects: Optional[str] = Field(default=None)
 
 
 class UserResponse(BaseModel):
@@ -88,9 +95,14 @@ class UserResponse(BaseModel):
     employment_status: Optional[str] = Field(default=None, description="직장 상태")
     base_score: Optional[int] = Field(default=None, description="초기 점수")
     daily_study_time: Optional[int] = Field(default=None, description="일일 학습 시간 (분)")
-    target_date: Optional[str] = Field(default=None, description="목표 시험 날짜 (ISO)")
+    study_duration: Optional[str] = Field(default=None, description="목표 수험 기간")
+    is_first_timer: Optional[bool] = Field(default=None, description="초시 여부")
+    target_position: Optional[str] = Field(default=None, description="목표 직렬")
+    weak_subjects: Optional[str] = Field(default=None, description="취약 과목 (쉼표 구분)")
+    strong_subjects: Optional[str] = Field(default=None, description="강점 과목 (쉼표 구분)")
     registration_date: Optional[str] = Field(default=None, description="등록 시각 (ISO)")
     last_login: Optional[str] = Field(default=None, description="마지막 로그인 (ISO)")
+    provider: Optional[str] = Field(default=None, description="소셜 로그인 프로바이더")
 
 
 # ============================================================================

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -34,6 +35,104 @@ logger = logging.getLogger(__name__)
 
 # Orchestrator 인스턴스 (싱글톤 패턴)
 _flow = QuestionFlow()
+
+
+def _extract_question_nos(coordinates_json: Any, fallback_no: int) -> List[int]:
+    """coordinates_json에서 복수 문항 번호를 추출합니다."""
+    if isinstance(coordinates_json, dict):
+        raw = coordinates_json.get("question_nos")
+        if isinstance(raw, list):
+            nums: List[int] = []
+            for n in raw:
+                try:
+                    qn = int(n)
+                except (TypeError, ValueError):
+                    continue
+                if qn > 0:
+                    nums.append(qn)
+            if nums:
+                return sorted(set(nums))
+    return [int(fallback_no)]
+
+
+def _extract_question_nos_from_path(file_path: str) -> List[int]:
+    """파일명에서 문항 번호를 추출합니다.
+
+    지원 예시:
+    - gook_q01.webp -> [1]
+    - gook_q07_q08.webp -> [7, 8]
+    """
+    file_name = file_path.replace("\\", "/").rsplit("/", 1)[-1].lower()
+    if file_name.startswith("page_"):
+        return []
+    nums = [int(n) for n in re.findall(r"(?:^|_)q(\d{1,3})", file_name)]
+    nums = [n for n in nums if n > 0]
+    return sorted(set(nums))
+
+
+def _resolve_question_nos(coordinates_json: Any, fallback_no: int, file_path: str) -> List[int]:
+    """문항 번호를 coordinates_json 우선, 파일명 보조로 해석합니다."""
+    from_coordinates = _extract_question_nos(coordinates_json, fallback_no)
+    from_path = _extract_question_nos_from_path(file_path or "")
+
+    # coordinates_json에 유효한 복수 번호가 있으면 최우선 사용
+    if len(from_coordinates) > 1:
+        return from_coordinates
+
+    # 파일명이 더 풍부한 정보를 주면 파일명 사용
+    if len(from_path) > len(from_coordinates):
+        return from_path
+
+    # 둘 다 단일이면 coordinates 우선
+    return from_coordinates
+
+
+def _build_mapped_questions(
+    conn: psycopg.Connection,
+    exam_id: int,
+    question_nos: List[int],
+    fallback_question_id: int,
+    fallback_question_no: int,
+    fallback_answer_key: Any,
+) -> List[Dict[str, Any]]:
+    """이미지가 대표하는 문항 목록(question_id/문항번호/정답)을 구성합니다."""
+    requested = sorted(set(int(n) for n in question_nos if int(n) > 0))
+    if not requested:
+        requested = [int(fallback_question_no)]
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, question_no, answer_key
+            FROM questions
+            WHERE exam_id = %s
+              AND question_no = ANY(%s)
+            """,
+            (exam_id, requested),
+        )
+        rows = cur.fetchall()
+
+    by_qno: Dict[int, Dict[str, Any]] = {}
+    for q_id, q_no, ans in rows:
+        by_qno[int(q_no)] = {
+            "question_id": int(q_id),
+            "question_no": int(q_no),
+            "answer_key": str(ans) if ans is not None else None,
+        }
+
+    mapped: List[Dict[str, Any]] = []
+    for q_no in requested:
+        if q_no in by_qno:
+            mapped.append(by_qno[q_no])
+
+    if not mapped:
+        mapped = [{
+            "question_id": int(fallback_question_id),
+            "question_no": int(fallback_question_no),
+            "answer_key": str(fallback_answer_key) if fallback_answer_key is not None else None,
+        }]
+
+    return mapped
 
 
 # ============================================================================
@@ -339,13 +438,153 @@ async def get_random_question_images(
 
     images = []
     for r in rows:
+        coordinates_json = r[3] or {}
+        question_nos = _resolve_question_nos(coordinates_json, r[5], r[2] or "")
+        mapped_questions = _build_mapped_questions(
+            conn=conn,
+            exam_id=int(r[7]),
+            question_nos=question_nos,
+            fallback_question_id=int(r[1]),
+            fallback_question_no=int(r[5]),
+            fallback_answer_key=r[6],
+        )
         images.append({
             "image_id": r[0],
             "question_id": r[1],
             "file_path": r[2],
-            "coordinates_json": r[3] or {},
+            "coordinates_json": coordinates_json,
             "image_type": r[4],
             "question_no": r[5],
+            "question_nos": question_nos,
+            "mapped_questions": mapped_questions,
+            "answer_key": r[6],
+            "exam_id": r[7],
+            "year": r[8],
+            "exam_type": r[9],
+            "subject": r[10],
+            "grade": r[11],
+            "series": r[12],
+        })
+
+    return {"success": True, "images": images, "count": len(images)}
+
+
+@router.get("/images/select", response_model=dict)
+async def get_selected_question_images(
+    year: int,
+    subject: str,
+    series: Optional[str] = None,
+    count: int = 20,
+    conn: psycopg.Connection = Depends(get_db_connection),
+) -> dict:
+    """선택 조건(연도/과목/회차)에 맞는 문제 이미지를 문항 번호 순서대로 반환합니다."""
+    where_clauses = ["e.year = %s", "e.subject = %s"]
+    params: List[Any] = [year, subject]
+
+    if series:
+        # 현재 exams.series 컬럼에는 월이 아닌 직렬명이 저장될 수 있어,
+        # "N월" 형식은 image file_path의 폴더명(YYMMDD+...)에서 월을 추출해 필터링합니다.
+        month_match = None
+        try:
+            if series.endswith("월"):
+                month_match = int(series.replace("월", "").strip())
+        except ValueError:
+            month_match = None
+
+        if month_match and 1 <= month_match <= 12:
+            yy = str(year)[-2:]
+            mm = f"{month_match:02d}"
+            where_clauses.append(
+                r"REPLACE(qi.file_path, '\\', '/') LIKE %s"
+            )
+            params.append(f"%/{yy}{mm}__+%")
+        else:
+            # 월 형식이 아닐 때는 기존 series 조건도 지원
+            where_clauses.append("e.series = %s")
+            params.append(series)
+
+    where_sql = " AND ".join(where_clauses)
+    limit_count = min(count, 100)
+
+    with conn.cursor() as cur:
+        # 1) 조건에 맞는 시험지 1개를 먼저 고정 (여러 시험 혼합 방지)
+        cur.execute(
+            f"""
+            SELECT
+                e.id,
+                COUNT(DISTINCT q.id) AS q_count,
+                BOOL_OR(REPLACE(qi.file_path, '\\', '/') LIKE %s) AS has_duplicated_folder
+            FROM exams e
+            JOIN questions q ON q.exam_id = e.id
+            JOIN question_images qi ON qi.question_id = q.id
+            WHERE {where_sql}
+            GROUP BY e.id
+            ORDER BY q_count DESC, has_duplicated_folder ASC, e.id ASC
+            LIMIT 1
+            """,
+            ["%(2)/%", *params],
+        )
+        exam_row = cur.fetchone()
+
+        if not exam_row:
+            return {"success": True, "images": [], "count": 0}
+
+        target_exam_id = exam_row[0]
+
+        # 2) 고정된 시험지에서 문제 번호 순서대로 조회
+        cur.execute(
+            """
+            WITH one_image_per_question AS (
+                SELECT DISTINCT ON (q.id)
+                    qi.id AS image_id,
+                    qi.question_id,
+                    qi.file_path,
+                    qi.coordinates_json,
+                    qi.image_type,
+                    q.question_no,
+                    q.answer_key,
+                    q.exam_id,
+                    e.year,
+                    e.exam_type,
+                    e.subject,
+                    e.grade,
+                    e.series
+                FROM questions q
+                JOIN question_images qi ON qi.question_id = q.id
+                JOIN exams e ON q.exam_id = e.id
+                WHERE q.exam_id = %s
+                ORDER BY q.id, qi.id
+            )
+            SELECT *
+            FROM one_image_per_question
+            ORDER BY question_no ASC
+            LIMIT %s
+            """,
+            (target_exam_id, limit_count),
+        )
+        rows = cur.fetchall()
+
+    images = []
+    for r in rows:
+        coordinates_json = r[3] or {}
+        question_nos = _resolve_question_nos(coordinates_json, r[5], r[2] or "")
+        mapped_questions = _build_mapped_questions(
+            conn=conn,
+            exam_id=int(r[7]),
+            question_nos=question_nos,
+            fallback_question_id=int(r[1]),
+            fallback_question_no=int(r[5]),
+            fallback_answer_key=r[6],
+        )
+        images.append({
+            "image_id": r[0],
+            "question_id": r[1],
+            "file_path": r[2],
+            "coordinates_json": coordinates_json,
+            "image_type": r[4],
+            "question_no": r[5],
+            "question_nos": question_nos,
+            "mapped_questions": mapped_questions,
             "answer_key": r[6],
             "exam_id": r[7],
             "year": r[8],

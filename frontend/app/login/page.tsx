@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { handleKakaoLogin, handleNaverLogin, handleGoogleLogin } from "@/service/mainservice";
+import { API_BASE_URL, getStoredLinkedProviders, storeLinkedProviders } from "@/lib/auth-api";
 
 const PARTICLES = [
     { left: "3%", delay: "0s", duration: "9s", opacity: 0.15 },
@@ -15,9 +17,113 @@ const PARTICLES = [
     { left: "95%", delay: "3.5s", duration: "13s", opacity: 0.16 },
 ];
 
+const ALL_PROVIDERS = ["kakao", "naver", "google"] as const;
+
 export default function LoginPage() {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [linkedProviders, setLinkedProviders] = useState<string[]>([]);
+    const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+    // ── 로그인 상태 + 연동 프로바이더 확인 ──
+    // 1. /api/auth/me 로 현재 로그인 여부 확인
+    //    → 로그인 상태: isLoggedIn=true, linkedProviders 세팅, localStorage 동기화
+    // 2. 비로그인(로그아웃 후 복귀)이면 localStorage 에서 연동 정보 복원
+    //    → 미연동 프로바이더는 비활성 유지
+    // 3. localStorage 에도 없으면 → 최초 사용자 → 전체 활성
+    useEffect(() => {
+        const checkAuth = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+                    credentials: "include",
+                });
+
+                if (res.ok) {
+                    const user = await res.json();
+                    if (user && user.id) {
+                        setIsLoggedIn(true);
+                        const providers: string[] = [];
+                        if (user.linked_accounts) {
+                            user.linked_accounts.forEach((acc: { provider?: string }) => {
+                                if (acc.provider && !providers.includes(acc.provider)) {
+                                    providers.push(acc.provider);
+                                }
+                            });
+                        }
+                        if (user.provider && !providers.includes(user.provider)) {
+                            providers.push(user.provider);
+                        }
+                        setLinkedProviders(providers);
+                        // localStorage 동기화
+                        if (providers.length > 0) storeLinkedProviders(providers);
+                        return;
+                    }
+                }
+            } catch {
+                // 네트워크 오류 — 아래 fallback 로 진행
+            }
+
+            // 비로그인 상태 → localStorage fallback
+            const stored = getStoredLinkedProviders();
+            if (stored && stored.length > 0) {
+                setLinkedProviders(stored);
+            }
+            // stored가 null이면 최초 사용자 → linkedProviders=[] → 전체 활성
+        };
+        checkAuth();
+    }, []);
+
+    // 토스트 자동 사라짐
+    useEffect(() => {
+        if (!toastMsg) return;
+        const t = setTimeout(() => setToastMsg(null), 3000);
+        return () => clearTimeout(t);
+    }, [toastMsg]);
+
+    const handleSocialClick = (
+        provider: string,
+        handler: () => Promise<void>,
+    ) => {
+        const hasHistory = linkedProviders.length > 0;
+        const isLinked = linkedProviders.includes(provider);
+
+        // ── 로그인 상태 ──
+        if (isLoggedIn) {
+            if (isLinked) {
+                // 이미 연동된 프로바이더 → 바로 채팅
+                window.location.href = "/chat";
+            } else {
+                // 미연동 → 안내 메시지
+                setToastMsg("사용자 정보 페이지에서 먼저 계정연동을 진행해주세요.");
+            }
+            return;
+        }
+
+        // ── 비로그인 + 기존 사용자(로그아웃 후 복귀) ──
+        if (hasHistory) {
+            if (isLinked) {
+                // 연동된 프로바이더 → 정상 로그인 진행
+                handler();
+            } else {
+                // 미연동 프로바이더 → 차단
+                setToastMsg("사용자 정보 페이지에서 먼저 계정연동을 진행해주세요.");
+            }
+            return;
+        }
+
+        // ── 최초 사용자(localStorage 없음) → 모든 소셜 로그인 허용 ──
+        handler();
+    };
+
     return (
         <div className="login-container">
+            {/* 토스트 메시지 */}
+            {toastMsg && (
+                <div className="toast-message">
+                    <span className="toast-icon">ℹ️</span>
+                    <span>{toastMsg}</span>
+                </div>
+            )}
+
             {/* 배경 파티클 */}
             <div className="particles">
                 {PARTICLES.map((p, i) => (
@@ -47,16 +153,44 @@ export default function LoginPage() {
 
                 {/* 소셜 로그인 아이콘 */}
                 <div className="social-buttons">
-                    <button className="social-btn kakao" onClick={handleKakaoLogin}>
-                        <img src="/images/login/kakao.png" alt="카카오 로그인" className="social-icon" />
-                    </button>
-                    <button className="social-btn naver" onClick={handleNaverLogin}>
-                        <img src="/images/login/naver.png" alt="네이버 로그인" className="social-icon" />
-                    </button>
-                    <button className="social-btn google" onClick={handleGoogleLogin}>
-                        <img src="/images/login/google.png" alt="구글 로그인" className="social-icon" />
-                    </button>
+                    {(["kakao", "naver", "google"] as const).map((provider) => {
+                        const hasHistory = linkedProviders.length > 0;
+                        const isLinked = linkedProviders.includes(provider);
+                        const isLocked = hasHistory && !isLinked;
+                        const handlers = {
+                            kakao: handleKakaoLogin,
+                            naver: handleNaverLogin,
+                            google: handleGoogleLogin,
+                        };
+                        const labels = { kakao: "카카오", naver: "네이버", google: "구글" };
+
+                        return (
+                            <div className="social-btn-wrap" key={provider}>
+                                <button
+                                    className={`social-btn ${provider} ${isLocked ? "social-btn-locked" : ""} ${isLoggedIn && isLinked ? "social-btn-linked" : ""}`}
+                                    onClick={() => handleSocialClick(provider, handlers[provider])}
+                                >
+                                    <img
+                                        src={`/images/login/${provider}.png`}
+                                        alt={`${labels[provider]} 로그인`}
+                                        className="social-icon"
+                                    />
+                                </button>
+                                {isLoggedIn && isLinked && (
+                                    <span className={`linked-dot ${provider}-dot`} />
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
+
+                {/* 연동 안내 + 초기화 (비활성 프로바이더가 있을 때) */}
+                {linkedProviders.length > 0 && linkedProviders.length < ALL_PROVIDERS.length && (
+                    <p className="link-hint">
+                        🔗 다른 소셜 계정을 연동하려면{" "}
+                        <a href="/user" className="link-hint-anchor">사용자 정보</a> 페이지에서 계정연동을 진행하세요.
+                    </p>
+                )}
 
                 {/* 구분선 */}
                 <div className="divider">
@@ -210,6 +344,83 @@ export default function LoginPage() {
                     border-color: rgba(66, 133, 244, 0.4);
                     box-shadow: 0 8px 24px rgba(66, 133, 244, 0.08);
                 }
+
+                /* ── 잠김/연동 상태 ── */
+                .social-btn-wrap {
+                    position: relative;
+                    display: inline-block;
+                }
+
+                .social-btn-locked {
+                    opacity: 0.3;
+                    filter: grayscale(0.8);
+                    cursor: not-allowed !important;
+                }
+                .social-btn-locked:hover {
+                    transform: none;
+                    box-shadow: none;
+                    border-color: rgba(255, 255, 255, 0.08);
+                }
+
+                .social-btn-linked {
+                    border-color: rgba(255, 255, 255, 0.15);
+                }
+
+                .linked-dot {
+                    position: absolute;
+                    bottom: -2px;
+                    right: -2px;
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 50%;
+                    border: 2px solid #000;
+                }
+                .kakao-dot { background: #FEE500; }
+                .naver-dot { background: #03C75A; }
+                .google-dot { background: #4285F4; }
+
+                /* ── 토스트 메시지 ── */
+                .toast-message {
+                    position: fixed;
+                    top: 24px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(30, 30, 30, 0.95);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    color: rgba(255, 255, 255, 0.85);
+                    padding: 12px 24px;
+                    border-radius: 10px;
+                    font-size: 0.82rem;
+                    backdrop-filter: blur(12px);
+                    z-index: 100;
+                    animation: toastIn 0.3s ease-out;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    white-space: nowrap;
+                }
+                .toast-icon { font-size: 1rem; }
+                @keyframes toastIn {
+                    from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+                    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+                }
+
+                /* ── 연동 안내 ── */
+                .link-hint {
+                    text-align: center;
+                    font-size: 0.7rem;
+                    color: rgba(255, 255, 255, 0.25);
+                    margin: 0 0 8px 0;
+                }
+                .link-hint-anchor {
+                    color: rgba(96, 165, 250, 0.7);
+                    text-decoration: underline;
+                    text-underline-offset: 2px;
+                }
+                .link-hint-anchor:hover {
+                    color: rgba(96, 165, 250, 1);
+                }
+
 
                 .social-icon {
                     width: 28px;

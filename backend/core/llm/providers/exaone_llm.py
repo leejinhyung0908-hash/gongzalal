@@ -1,4 +1,5 @@
 """EXAONE 모델 LLM 구현체."""
+import gc
 import os
 import re
 from pathlib import Path
@@ -55,18 +56,31 @@ class ExaoneLLM(BaseLLM):
         self._pipeline = None
 
     def load(self) -> None:
-        """모델을 메모리에 로드합니다."""
+        """모델을 메모리에 로드합니다.
+
+        RAM 최적화:
+        - low_cpu_mem_usage=True: shard별 로드 (전체 모델을 한 번에 RAM에 올리지 않음)
+        - torch_dtype=float16: FP32 대신 FP16으로 가중치 로드 (RAM 절반)
+        - GC + CUDA 캐시 정리: 로드 후 즉시 임시 메모리 해제
+        """
         if self.is_loaded():
             print(f"[ExaoneLLM] 모델이 이미 로드되어 있습니다: {self.model_path}")
             return
 
         print(f"[ExaoneLLM] 모델 로드 시작: {self.model_path}", flush=True)
 
+        # 로드 전 메모리 정리
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         try:
             # 양자화 설정
             model_kwargs = {
                 "device_map": self.device_map,
                 "trust_remote_code": self.trust_remote_code,
+                "low_cpu_mem_usage": True,       # ★ shard별 로드 → 피크 RAM 대폭 절감
+                "torch_dtype": torch.float16,    # ★ FP16으로 로드 (FP32 대비 RAM 절반)
             }
 
             if self.load_in_4bit:
@@ -77,27 +91,29 @@ class ExaoneLLM(BaseLLM):
                         bnb_4bit_compute_dtype=torch.float16,
                         bnb_4bit_use_double_quant=True,
                         bnb_4bit_quant_type="nf4",
-                        llm_int8_enable_fp32_cpu_offload=True,  # CPU 오프로드
                     )
                     model_kwargs["quantization_config"] = quantization_config
-                    print("[ExaoneLLM] 4-bit 양자화 활성화", flush=True)
+                    print("[ExaoneLLM] 4-bit NF4 양자화 활성화 (low_cpu_mem_usage=True)", flush=True)
                 except ImportError:
                     print(
                         "[ExaoneLLM] bitsandbytes가 설치되지 않아 4-bit 양자화를 건너뜁니다.",
                         flush=True,
                     )
-                    model_kwargs["torch_dtype"] = self.torch_dtype
             elif self.load_in_8bit:
                 model_kwargs["load_in_8bit"] = True
                 print("[ExaoneLLM] 8-bit 양자화 활성화", flush=True)
-            else:
-                model_kwargs["torch_dtype"] = self.torch_dtype
 
             # 모델 로드
             self._model = AutoModelForCausalLM.from_pretrained(
                 self.model_path,
                 **model_kwargs,
             )
+
+            # ★ 로드 직후 임시 CPU 메모리 즉시 해제
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
             print(f"[ExaoneLLM] 모델 로드 완료: {self.model_path}", flush=True)
 
             # LoRA 어댑터가 있으면 로드
@@ -115,7 +131,10 @@ class ExaoneLLM(BaseLLM):
                     print(f"[ExaoneLLM] 경고: LoRA 어댑터 경로를 찾을 수 없습니다: {lora_path}", flush=True)
 
             # 토크나이저 로드
-            self._tokenizer = AutoTokenizer.from_pretrained(self.model_path)
+            self._tokenizer = AutoTokenizer.from_pretrained(
+                self.model_path,
+                trust_remote_code=self.trust_remote_code,
+            )
 
             # 패딩 토큰 설정
             if self._tokenizer.pad_token is None:
@@ -128,6 +147,15 @@ class ExaoneLLM(BaseLLM):
                 tokenizer=self._tokenizer,
             )
             print("[ExaoneLLM] Pipeline 생성 완료", flush=True)
+
+            # 최종 메모리 상태 로깅
+            if torch.cuda.is_available():
+                vram_used = torch.cuda.memory_allocated(0) / (1024 ** 3)
+                vram_total = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+                print(
+                    f"[ExaoneLLM] GPU VRAM: {vram_used:.1f}GB 사용 / {vram_total:.1f}GB 전체",
+                    flush=True,
+                )
 
         except Exception as e:
             print(f"[ExaoneLLM] 모델 로드 실패: {e}", flush=True)
@@ -208,21 +236,23 @@ class ExaoneLLM(BaseLLM):
 
     def unload(self) -> None:
         """모델을 메모리에서 언로드합니다."""
+        # Pipeline → Model → Tokenizer 순서로 해제 (참조 역순)
+        if self._pipeline is not None:
+            del self._pipeline
+            self._pipeline = None
         if self._model is not None:
             del self._model
             self._model = None
         if self._tokenizer is not None:
             del self._tokenizer
             self._tokenizer = None
-        if self._pipeline is not None:
-            del self._pipeline
-            self._pipeline = None
 
-        # GPU 메모리 정리
+        # GC 강제 실행 후 GPU 캐시 정리
+        gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-        print(f"[ExaoneLLM] 모델 언로드 완료: {self.model_path}")
+        print(f"[ExaoneLLM] 모델 언로드 완료: {self.model_path}", flush=True)
 
     def get_model(self):
         """로드된 모델을 반환합니다."""

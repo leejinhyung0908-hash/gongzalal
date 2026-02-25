@@ -36,27 +36,73 @@ function generateSessionId() {
     return "sess_" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
 }
 
+// sessionStorage 키
+const STORAGE_KEY_MESSAGES = "chat_messages";
+const STORAGE_KEY_THREAD_ID = "chat_thread_id";
+
+// 초기 환영 메시지
+const WELCOME_MESSAGE: ChatMessage = {
+    role: "bot",
+    text: "안녕하세요! 공잘알 AI 멘토입니다.\n\n공무원 시험 준비에 대해 무엇이든 물어보세요.\n합격 수기 4,910건의 데이터를 기반으로 맞춤 조언을 드립니다.\n\n💡 예시 질문:\n• 노베이스 1년 일행직 어떻게 준비해?\n• 행정법 교재 추천해줘\n• 단기 합격 학습 계획 짜줘\n• 독학 vs 학원 어떤게 나을까?",
+};
+
+/** sessionStorage에서 대화 이력 복원 */
+function loadMessagesFromStorage(): ChatMessage[] {
+    if (typeof window === "undefined") return [WELCOME_MESSAGE];
+    try {
+        const raw = sessionStorage.getItem(STORAGE_KEY_MESSAGES);
+        if (raw) {
+            const parsed = JSON.parse(raw) as ChatMessage[];
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+    } catch { /* 파싱 실패 시 기본값 */ }
+    return [WELCOME_MESSAGE];
+}
+
+/** sessionStorage에서 세션 ID 복원 */
+function loadThreadIdFromStorage(): string {
+    if (typeof window === "undefined") return generateSessionId();
+    try {
+        const saved = sessionStorage.getItem(STORAGE_KEY_THREAD_ID);
+        if (saved) return saved;
+    } catch { /* 실패 시 새로 생성 */ }
+    const newId = generateSessionId();
+    sessionStorage.setItem(STORAGE_KEY_THREAD_ID, newId);
+    return newId;
+}
+
 export default function ChatbotUI() {
-    const [messages, setMessages] = useState<ChatMessage[]>([
-        { role: "bot", text: "안녕하세요! 공잘알 AI 멘토입니다.\n\n공무원 시험 준비에 대해 무엇이든 물어보세요.\n합격 수기 4,910건의 데이터를 기반으로 맞춤 조언을 드립니다.\n\n💡 예시 질문:\n• 노베이스 1년 일행직 어떻게 준비해?\n• 행정법 교재 추천해줘\n• 단기 합격 학습 계획 짜줘\n• 독학 vs 학원 어떤게 나을까?" },
-    ]);
+    const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isInfoOpen, setIsInfoOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    // 멀티턴 대화 세션 ID (컴포넌트 수명 동안 유지)
-    const threadIdRef = useRef<string>(generateSessionId());
+    // 멀티턴 대화 세션 ID (sessionStorage에서 복원)
+    const threadIdRef = useRef<string>("");
 
-    const handleLogout = async () => {
-        setIsMenuOpen(false);
-        const success = await logout();
-        if (success) {
-            window.location.href = "/login";
-        } else {
-            alert("로그아웃에 실패했습니다. 다시 시도해주세요.");
+    // ── 마운트 시 sessionStorage에서 이력 복원 ──
+    useEffect(() => {
+        const restored = loadMessagesFromStorage();
+        setMessages(restored);
+        threadIdRef.current = loadThreadIdFromStorage();
+    }, []);
+
+    // ── messages 변경 시 sessionStorage에 저장 ──
+    useEffect(() => {
+        // 초기 환영 메시지만 있는 경우 저장 불필요
+        if (messages.length <= 1 && messages[0]?.text === WELCOME_MESSAGE.text) {
+            return;
         }
+        try {
+            sessionStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(messages));
+        } catch { /* 용량 초과 등 무시 */ }
+    }, [messages]);
+
+    const handleLogout = () => {
+        setIsMenuOpen(false);
+        logout(); // 백엔드 리다이렉트로 쿠키 삭제 + /login 이동
     };
 
     useEffect(() => {
@@ -251,14 +297,21 @@ export default function ChatbotUI() {
                     <nav className="flex flex-col gap-1 mt-6">
                         <a href="/" className="menu-item">홈으로</a>
                         <button className="menu-item" onClick={() => {
-                            threadIdRef.current = generateSessionId();
-                            setMessages([{ role: "bot", text: "새 대화를 시작합니다. 무엇이든 물어보세요!" }]);
+                            // 새 세션 생성
+                            const newId = generateSessionId();
+                            threadIdRef.current = newId;
+                            sessionStorage.setItem(STORAGE_KEY_THREAD_ID, newId);
+                            // 대화 이력 초기화
+                            const freshMessages: ChatMessage[] = [WELCOME_MESSAGE];
+                            setMessages(freshMessages);
+                            sessionStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(freshMessages));
                             setIsMenuOpen(false);
                         }}>새 대화</button>
                         <a href="/upload/commentary" className="menu-item">파일 업로드</a>
                         <a href="/test_exam" className="menu-item">가상 모의고사</a>
                         <a href="/study-plan" className="menu-item">학습 분석 & AI 플랜</a>
                         <div className="menu-divider" />
+                        <a href="/user" className="menu-item">사용자 정보</a>
                         <button className="menu-item" onClick={() => { setIsMenuOpen(false); setIsSettingsOpen(true); }}>설정</button>
                         <button className="menu-item" onClick={() => { setIsMenuOpen(false); setIsInfoOpen(true); }}>정보</button>
                         <div className="menu-divider" />

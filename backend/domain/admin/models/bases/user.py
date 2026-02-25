@@ -20,7 +20,7 @@ try:
 except ImportError:
     Vector = None  # type: ignore
 
-from sqlalchemy import Date, DateTime, Enum, SmallInteger, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, Enum, SmallInteger, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.domain.shared.bases import Base
@@ -58,8 +58,20 @@ class User(Base):
     # 일일 학습 시간 (분 단위)
     daily_study_time: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
 
-    # 목표 시험 날짜
-    target_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    # 목표 수험 기간 (예: "6개월", "1년", "3개월 이내" 등)
+    study_duration: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+    # 초시 여부 (첫 시험 응시)
+    is_first_timer: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+
+    # 목표 직렬 (일반행정, 세무, 교육행정 등)
+    target_position: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+    # 취약 과목 (쉼표 구분, 예: "국어,영어")
+    weak_subjects: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # 강점 과목 (쉼표 구분, 예: "한국사,행정법")
+    strong_subjects: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # 등록 날짜 (자동 설정)
     registration_date: Mapped[datetime] = mapped_column(

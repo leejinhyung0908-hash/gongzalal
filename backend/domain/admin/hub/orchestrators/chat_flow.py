@@ -496,8 +496,23 @@ class ChatFlow:
                 "target_flow": f"{request_type}_flow",
             }
 
-        # ── BLOCK (고신뢰): 신뢰도가 충분하면 즉시 차단 ──
+        # ── BLOCK (고신뢰): 신뢰도가 충분해도 도메인 키워드 있으면 오분류 가능 ──
         if gateway == "BLOCK" and method not in ("keyword_fallback", "error", "unavailable"):
+            # 원본 텍스트에 도메인 키워드가 있는지 확인 (오분류 방지)
+            # 예: "독학 vs 학원 어떤게 나을까?" → "독학", "학원" 포함 → mentoring
+            original_type = _classify_request_keyword_only(request_text)
+            if original_type != "chat":
+                # 도메인 키워드가 있음 → KoELECTRA BLOCK은 오분류
+                logger.info(
+                    f"[ChatFlow] KoELECTRA BLOCK이지만 도메인 키워드 매칭({original_type.upper()}) → "
+                    f"BLOCK 무시 (confidence={confidence:.3f}, text='{request_text[:40]}')"
+                )
+                return {
+                    **state,
+                    "request_type": original_type,
+                    "target_flow": f"{original_type}_flow",
+                }
+
             logger.info(
                 f"[ChatFlow] KoELECTRA → BLOCK (고신뢰 차단) "
                 f"[confidence={confidence:.3f}, method={method}]"

@@ -177,6 +177,28 @@ def extract_folder_name(path: str) -> str:
     return ""
 
 
+def extract_question_nos_from_filename(file_name: str) -> List[int]:
+    """파일명 규칙에서 복수 문항 번호를 추출합니다.
+
+    지원 예시:
+    - gook_q01.webp -> [1]
+    - gook_q07_q08.webp -> [7, 8]
+
+    주의:
+    - 기존 page_001_q01.webp 같은 페이지 기반 파일명은 중복 번호가 발생하므로
+      여기서는 자동 번호 추출 대상으로 사용하지 않습니다.
+    """
+    lower_name = file_name.lower()
+    if lower_name.startswith("page_"):
+        return []
+
+    nums = [int(n) for n in re.findall(r"_q(\d{1,3})", lower_name)]
+    nums = [n for n in nums if n > 0]
+    if not nums:
+        return []
+    return sorted(set(nums))
+
+
 # ============================================================================
 # QuestionFlow
 # ============================================================================
@@ -437,6 +459,7 @@ class QuestionFlow:
                 bbox = item.get("bbox", [])
                 confidence = item.get("confidence", 0.0)
                 source_image = item.get("source_image", "")
+                raw_question_nos = item.get("question_nos")
 
                 if not crop_path or original_qno <= 0:
                     errors.append({
@@ -469,6 +492,40 @@ class QuestionFlow:
                     folder_seen_keys[folder_name][unique_key] = folder_global_counter[folder_name]
 
                 question_no = folder_seen_keys[folder_name][unique_key]
+                filename_question_nos = extract_question_nos_from_filename(file_name)
+
+                # ── 복수 문항 번호 지원 ──
+                # 신규 데이터는 question_nos: [7, 8] 형태를 지원하고,
+                # 없으면 기존처럼 재계산한 글로벌 번호 1개를 사용합니다.
+                question_nos: List[int] = []
+                if isinstance(raw_question_nos, list):
+                    for n in raw_question_nos:
+                        try:
+                            qn = int(n)
+                        except (TypeError, ValueError):
+                            continue
+                        if qn > 0:
+                            question_nos.append(qn)
+                elif isinstance(raw_question_nos, str):
+                    for token in raw_question_nos.split(","):
+                        token = token.strip()
+                        if not token:
+                            continue
+                        try:
+                            qn = int(token)
+                        except ValueError:
+                            continue
+                        if qn > 0:
+                            question_nos.append(qn)
+
+                if question_nos:
+                    question_nos = sorted(set(question_nos))
+                    question_no = question_nos[0]
+                elif filename_question_nos:
+                    question_nos = filename_question_nos
+                    question_no = question_nos[0]
+                else:
+                    question_nos = [question_no]
 
                 # 2) Exam 생성/조회 (캐시 사용)
                 if folder_name not in exam_cache:
@@ -510,6 +567,7 @@ class QuestionFlow:
                 coordinates_json = {
                     "bbox": bbox,
                     "confidence": confidence,
+                    "question_nos": question_nos,
                 }
 
                 is_new = self._insert_question_image(

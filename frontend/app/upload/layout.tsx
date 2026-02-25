@@ -19,13 +19,8 @@ export default function UploadLayout({
 }) {
     const pathname = usePathname();
 
-    const handleLogout = async () => {
-        const success = await logout();
-        if (success) {
-            window.location.href = "/login";
-        } else {
-            alert("로그아웃에 실패했습니다.");
-        }
+    const handleLogout = () => {
+        logout(); // 백엔드 리다이렉트로 쿠키 삭제 + /login 이동
     };
 
     return (

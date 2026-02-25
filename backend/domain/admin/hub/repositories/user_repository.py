@@ -3,12 +3,12 @@
 테이블 구조:
 - users: 사용자 프로필 정보
   - id, display_name, age, employment_status
-  - base_score, daily_study_time, target_date
+  - base_score, daily_study_time, study_duration
   - registration_date, last_login
 """
 
 import logging
-from datetime import date, datetime
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 import psycopg
@@ -46,7 +46,7 @@ class UserRepository:
         employment_status: Optional[str] = None,
         base_score: Optional[int] = None,
         daily_study_time: Optional[int] = None,
-        target_date: Optional[date] = None,
+        study_duration: Optional[str] = None,
     ) -> Dict[str, Any]:
         """사용자 생성.
 
@@ -56,7 +56,7 @@ class UserRepository:
             employment_status: 직장 상태 ('재직', '무직', '학생')
             base_score: 베이스 점수
             daily_study_time: 일일 학습 시간 (분)
-            target_date: 목표 시험 날짜
+            study_duration: 목표 수험 기간
 
         Returns:
             생성된 사용자 데이터
@@ -68,15 +68,15 @@ class UserRepository:
                 """
                 INSERT INTO users (
                     display_name, age, employment_status,
-                    base_score, daily_study_time, target_date
+                    base_score, daily_study_time, study_duration
                 ) VALUES (%s, %s, %s, %s, %s, %s)
                 RETURNING id, display_name, age, employment_status,
-                          base_score, daily_study_time, target_date,
+                          base_score, daily_study_time, study_duration,
                           registration_date, last_login
                 """,
                 (
                     display_name, age, employment_status,
-                    base_score, daily_study_time, target_date
+                    base_score, daily_study_time, study_duration
                 )
             )
             row = cur.fetchone()
@@ -101,7 +101,7 @@ class UserRepository:
             cur.execute(
                 """
                 SELECT id, display_name, age, employment_status,
-                       base_score, daily_study_time, target_date,
+                       base_score, daily_study_time, study_duration,
                        registration_date, last_login
                 FROM users
                 WHERE id = %s
@@ -130,7 +130,7 @@ class UserRepository:
             cur.execute(
                 """
                 SELECT id, display_name, age, employment_status,
-                       base_score, daily_study_time, target_date,
+                       base_score, daily_study_time, study_duration,
                        registration_date, last_login
                 FROM users
                 WHERE social_id = %s
@@ -159,7 +159,7 @@ class UserRepository:
             cur.execute(
                 """
                 SELECT id, display_name, age, employment_status,
-                       base_score, daily_study_time, target_date,
+                       base_score, daily_study_time, study_duration,
                        registration_date, last_login
                 FROM users
                 WHERE display_name = %s
@@ -181,7 +181,7 @@ class UserRepository:
         employment_status: Optional[str] = None,
         base_score: Optional[int] = None,
         daily_study_time: Optional[int] = None,
-        target_date: Optional[date] = None,
+        study_duration: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         """사용자 정보 수정.
 
@@ -192,7 +192,7 @@ class UserRepository:
             employment_status: 직장 상태
             base_score: 베이스 점수
             daily_study_time: 일일 학습 시간
-            target_date: 목표 날짜
+            study_duration: 목표 수험 기간
 
         Returns:
             수정된 사용자 데이터 또는 None
@@ -218,9 +218,9 @@ class UserRepository:
         if daily_study_time is not None:
             updates.append("daily_study_time = %s")
             params.append(daily_study_time)
-        if target_date is not None:
-            updates.append("target_date = %s")
-            params.append(target_date)
+        if study_duration is not None:
+            updates.append("study_duration = %s")
+            params.append(study_duration)
 
         if not updates:
             return self.get_by_id(user_id)
@@ -235,7 +235,7 @@ class UserRepository:
                 SET {', '.join(updates)}
                 WHERE id = %s
                 RETURNING id, display_name, age, employment_status,
-                          base_score, daily_study_time, target_date,
+                          base_score, daily_study_time, study_duration,
                           registration_date, last_login
                 """,
                 params
@@ -324,7 +324,7 @@ class UserRepository:
             cur.execute(
                 f"""
                 SELECT id, display_name, age, employment_status,
-                       base_score, daily_study_time, target_date,
+                       base_score, daily_study_time, study_duration,
                        registration_date, last_login
                 FROM users
                 ORDER BY {order_by} {order}
@@ -345,7 +345,7 @@ class UserRepository:
             "employment_status": row[3],
             "base_score": row[4],
             "daily_study_time": row[5],
-            "target_date": row[6].isoformat() if row[6] else None,
+            "study_duration": str(row[6]) if row[6] else None,
             "registration_date": row[7].isoformat() if row[7] else None,
             "last_login": row[8].isoformat() if row[8] else None,
         }

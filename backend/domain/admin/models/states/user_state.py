@@ -66,7 +66,7 @@ class UserDataState(TypedDict):
     employment_status: Optional[str]
     base_score: Optional[int]
     daily_study_time: Optional[int]
-    target_date: Optional[str]  # ISO 형식 날짜
+    study_duration: Optional[str]  # 목표 수험 기간
 
     # 타임스탬프 (ISO 형식 문자열)
     registration_date: str

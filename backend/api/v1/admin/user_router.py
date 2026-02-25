@@ -1,13 +1,14 @@
 """사용자 라우터.
 
 새 테이블 구조:
-- Users: display_name, age, employment_status, base_score, daily_study_time, target_date
+- Users: display_name, age, employment_status, base_score, daily_study_time, study_duration
 """
 
 from fastapi import APIRouter, HTTPException
 
 from backend.domain.admin.models.transfers.user_transfer import (
     UserCreateRequest,
+    UserUpdateRequest,
     UserResponse,
 )
 from backend.domain.admin.hub.orchestrators.user_flow import UserFlow
@@ -77,6 +78,37 @@ async def get_user(user_id: int) -> dict:
         raise
     except Exception as exc:
         print(f"[UserRouter] 오류 발생: {exc}", flush=True)
+        import traceback
+
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"서버 오류: {str(exc)}")
+
+
+@router.put("/{user_id}/profile", response_model=dict)
+async def update_user_profile(user_id: int, request: UserUpdateRequest) -> dict:
+    """사용자 프로필 업데이트 엔드포인트.
+
+    Args:
+        user_id: 사용자 ID
+        request: 업데이트할 프로필 데이터
+
+    Returns:
+        업데이트된 사용자 정보
+    """
+    try:
+        from backend.domain.admin.spokes.services.user_service import UserService
+
+        service = UserService()
+        user = await service.update_user_profile(user_id, request)
+
+        if not user:
+            raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+
+        return {"success": True, "user": user}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"[UserRouter] 프로필 업데이트 오류: {exc}", flush=True)
         import traceback
 
         traceback.print_exc()

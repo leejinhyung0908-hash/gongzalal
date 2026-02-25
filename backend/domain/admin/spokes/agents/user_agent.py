@@ -1,7 +1,7 @@
 """User 정책 기반 에이전트.
 
 새 테이블 구조:
-- Users: display_name, age, employment_status, base_score, daily_study_time, target_date
+- Users: display_name, age, employment_status, base_score, daily_study_time, study_duration
 
 애매한 경우(정책 기반)에 사용되는 에이전트.
 LLM을 사용하여 더 정교한 판단을 수행할 수 있음.
@@ -45,7 +45,7 @@ class UserAgent:
                 cur.execute(
                     """
                     SELECT id, display_name, age, employment_status, base_score,
-                           daily_study_time, target_date, registration_date, last_login
+                           daily_study_time, study_duration, registration_date, last_login
                     FROM users WHERE display_name = %s
                     """,
                     (req.display_name,),
@@ -61,18 +61,18 @@ class UserAgent:
                             employment_status = COALESCE(%s, employment_status),
                             base_score = COALESCE(%s, base_score),
                             daily_study_time = COALESCE(%s, daily_study_time),
-                            target_date = COALESCE(%s, target_date),
+                            study_duration = COALESCE(%s, study_duration),
                             last_login = now()
                         WHERE id = %s
                         RETURNING id, display_name, age, employment_status, base_score,
-                                  daily_study_time, target_date, registration_date, last_login
+                                  daily_study_time, study_duration, registration_date, last_login
                         """,
                         (
                             req.age,
                             req.employment_status,
                             req.base_score,
                             req.daily_study_time,
-                            req.target_date,
+                            req.study_duration,
                             row[0],
                         ),
                     )
@@ -90,7 +90,7 @@ class UserAgent:
                             employment_status=str(row[3]) if row[3] else None,
                             base_score=int(row[4]) if row[4] else None,
                             daily_study_time=int(row[5]) if row[5] else None,
-                            target_date=row[6].isoformat() if row[6] else None,
+                            study_duration=str(row[6]) if row[6] else None,
                             registration_date=row[7].isoformat() if row[7] else None,
                             last_login=row[8].isoformat() if row[8] else None,
                         ).model_dump(),
@@ -100,10 +100,10 @@ class UserAgent:
                     cur.execute(
                         """
                         INSERT INTO users (display_name, age, employment_status, base_score,
-                                         daily_study_time, target_date)
+                                         daily_study_time, study_duration)
                         VALUES (%s, %s, %s, %s, %s, %s)
                         RETURNING id, display_name, age, employment_status, base_score,
-                                  daily_study_time, target_date, registration_date, last_login
+                                  daily_study_time, study_duration, registration_date, last_login
                         """,
                         (
                             req.display_name,
@@ -111,7 +111,7 @@ class UserAgent:
                             req.employment_status,
                             req.base_score,
                             req.daily_study_time,
-                            req.target_date,
+                            req.study_duration,
                         ),
                     )
                     row = cur.fetchone()
@@ -128,7 +128,7 @@ class UserAgent:
                             employment_status=str(row[3]) if row[3] else None,
                             base_score=int(row[4]) if row[4] else None,
                             daily_study_time=int(row[5]) if row[5] else None,
-                            target_date=row[6].isoformat() if row[6] else None,
+                            study_duration=str(row[6]) if row[6] else None,
                             registration_date=row[7].isoformat() if row[7] else None,
                             last_login=row[8].isoformat() if row[8] else None,
                         ).model_dump(),

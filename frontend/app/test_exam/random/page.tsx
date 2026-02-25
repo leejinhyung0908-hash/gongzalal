@@ -1,9 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { useUser } from "@/lib/hooks/useUser";
 
 // ── 타입 ──
+type MappedQuestion = {
+    question_id: number;
+    question_no: number;
+    answer_key: string | null;
+};
+
 type QuestionImage = {
     image_id: number;
     question_id: number;
@@ -11,7 +18,9 @@ type QuestionImage = {
     coordinates_json: Record<string, any>;
     image_type: string;
     question_no: number;
-    answer_key: string;
+    question_nos?: number[];
+    mapped_questions?: MappedQuestion[];
+    answer_key: string | null;
     exam_id: number;
     year: number;
     exam_type: string;
@@ -50,9 +59,66 @@ function formatTime(seconds: number): string {
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+function formatQuestionNos(image: QuestionImage, fallbackNo: number): string {
+    if (Array.isArray(image.question_nos) && image.question_nos.length > 0) {
+        const nums = image.question_nos
+            .map((n) => Number(n))
+            .filter((n) => Number.isInteger(n) && n > 0);
+        if (nums.length > 0) return Array.from(new Set(nums)).join(", ");
+    }
+    if (Number.isInteger(image.question_no) && image.question_no > 0) {
+        return String(image.question_no);
+    }
+    return String(fallbackNo);
+}
+
+function getMappedQuestions(image: QuestionImage): MappedQuestion[] {
+    if (Array.isArray(image.mapped_questions) && image.mapped_questions.length > 0) {
+        return image.mapped_questions;
+    }
+    return [{
+        question_id: image.question_id,
+        question_no: image.question_no,
+        answer_key: image.answer_key,
+    }];
+}
+
+function getPrimaryMappedQuestion(image: QuestionImage): MappedQuestion {
+    return getMappedQuestions(image)[0];
+}
+
+function formatMappedAnswerKey(image: QuestionImage): string {
+    const mapped = getMappedQuestions(image);
+    if (mapped.length <= 1) return mapped[0]?.answer_key ?? "미정";
+    return mapped
+        .map((q) => `${q.question_no}번:${q.answer_key ?? "미정"}`)
+        .join(" / ");
+}
+
+function formatMappedSelectedAnswers(
+    image: QuestionImage,
+    selectedByQuestionId: Record<number, number | null>,
+): string {
+    const mapped = getMappedQuestions(image);
+    if (mapped.length <= 1) {
+        const selected = selectedByQuestionId[mapped[0]?.question_id ?? -1];
+        return selected != null ? String(selected) : "-";
+    }
+    return mapped
+        .map((q) => `${q.question_no}번:${selectedByQuestionId[q.question_id] ?? "-"}`)
+        .join(" / ");
+}
+
+function classifyAnswer(selected: number | null, answerKey: string | null): "correct" | "wrong" | "unanswered" | "unknown" {
+    if (!answerKey || answerKey === "미정") return "unknown";
+    if (selected == null) return "unanswered";
+    return String(selected) === String(answerKey) ? "correct" : "wrong";
+}
+
 export default function RandomExamPage() {
     // ── 로그인 사용자 ──
     const { user: loggedInUser } = useUser();
+    const searchParams = useSearchParams();
 
     // ── 상태 ──
     const [images, setImages] = useState<QuestionImage[]>([]);
@@ -75,6 +141,7 @@ export default function RandomExamPage() {
     // 리뷰 모드 (완료 후 문제 확인)
     const [isReviewing, setIsReviewing] = useState(false);
     const [reviewIndex, setReviewIndex] = useState(0);
+    const [activeMappedQuestionNoByIndex, setActiveMappedQuestionNoByIndex] = useState<Record<number, number>>({});
 
     // 해설 상태
     const [commentaryMap, setCommentaryMap] = useState<Record<number, string | null>>({});
@@ -91,8 +158,8 @@ export default function RandomExamPage() {
     // 이미지 로딩
     const [imageLoaded, setImageLoaded] = useState(false);
 
-    // ── 정답 선택 상태 ──
-    const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>([]);
+    // ── 정답 선택 상태 (question_id 기준) ──
+    const [selectedAnswersByQuestionId, setSelectedAnswersByQuestionId] = useState<Record<number, number | null>>({});
 
     // ── 풀이 기록 저장 상태 ──
     const [savingLogs, setSavingLogs] = useState(false);
@@ -108,33 +175,59 @@ export default function RandomExamPage() {
     const [isEraser, setIsEraser] = useState(false);
 
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const mode = searchParams.get("mode");
+    const selectedYear = searchParams.get("year");
+    const selectedSubject = searchParams.get("subject");
+    const selectedSeries = searchParams.get("series");
+    const selectedCount = Number(searchParams.get("count") || "20");
+    const isSelectMode = mode === "select";
 
     // ── 랜덤 문제 이미지 불러오기 ──
     const fetchRandomImages = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch(`${backendUrl}/api/v1/admin/questions/images/random?count=20`);
+            const isSelectRequestMode =
+                isSelectMode &&
+                !!selectedYear &&
+                !!selectedSubject;
+
+            const url = isSelectRequestMode
+                ? `${backendUrl}/api/v1/admin/questions/images/select?year=${encodeURIComponent(selectedYear)}&subject=${encodeURIComponent(selectedSubject)}&series=${encodeURIComponent(selectedSeries || "")}&count=${Math.max(1, Math.min(selectedCount || 20, 100))}`
+                : `${backendUrl}/api/v1/admin/questions/images/random?count=20`;
+
+            const res = await fetch(url);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             if (data.success && data.images?.length > 0) {
+                const incomingImages: QuestionImage[] = data.images;
+                const initialSelectedMap: Record<number, number | null> = {};
+                incomingImages.forEach((img) => {
+                    getMappedQuestions(img).forEach((q) => {
+                        initialSelectedMap[q.question_id] = null;
+                    });
+                });
                 setImages(data.images);
                 setCurrentIndex(0);
                 setQuestionTimes(new Array(data.images.length).fill(0));
-                setSelectedAnswers(new Array(data.images.length).fill(null));
+                setSelectedAnswersByQuestionId(initialSelectedMap);
                 setTotalElapsed(0);
                 setQuestionElapsed(0);
                 setIsFinished(false);
                 setIsRunning(true);
             } else {
-                setError("등록된 문제 이미지가 없습니다. 먼저 crop_results.json을 업로드해주세요.");
+                setError(
+                    isSelectRequestMode
+                        ? "선택한 조건에 맞는 문제가 없습니다. 조건을 바꿔 다시 시도해주세요."
+                        : "등록된 문제 이미지가 없습니다. 먼저 crop_results.json을 업로드해주세요."
+                );
             }
         } catch (e) {
             setError(e instanceof Error ? e.message : "문제 이미지를 불러오지 못했습니다.");
         } finally {
             setLoading(false);
         }
-    }, [backendUrl]);
+    }, [backendUrl, isSelectMode, selectedYear, selectedSubject, selectedSeries, selectedCount]);
 
     useEffect(() => {
         fetchRandomImages();
@@ -271,16 +364,16 @@ export default function RandomExamPage() {
     };
 
     // ── 정답 선택 ──
-    const selectAnswer = (answerNum: number) => {
-        setSelectedAnswers((prev) => {
-            const updated = [...prev];
-            // 같은 번호 다시 누르면 해제
-            updated[currentIndex] = updated[currentIndex] === answerNum ? null : answerNum;
-            return updated;
-        });
+    const getSelectedAnswer = (questionId: number): number | null => {
+        return selectedAnswersByQuestionId[questionId] ?? null;
     };
 
-    const currentAnswer = selectedAnswers[currentIndex] ?? null;
+    const selectAnswer = (questionId: number, answerNum: number) => {
+        setSelectedAnswersByQuestionId((prev) => ({
+            ...prev,
+            [questionId]: prev[questionId] === answerNum ? null : answerNum,
+        }));
+    };
 
     // ── 다음 문제 ──
     const goNext = () => {
@@ -324,22 +417,33 @@ export default function RandomExamPage() {
         if (logsSaved || savingLogs || images.length === 0) return;
         setSavingLogs(true);
         try {
-            const logs = images.map((img, idx) => {
-                const selected = selectedAnswers[idx];
-                const answerKey = img.answer_key;
-                const isWrongNote =
-                    selected != null &&
-                    answerKey &&
-                    answerKey !== "미정" &&
-                    String(selected) !== String(answerKey);
-
-                return {
-                    question_id: img.question_id,
-                    selected_answer: selected != null ? String(selected) : null,
-                    time_spent: finalQuestionTimes[idx] ?? 0,
-                    is_wrong_note: !!isWrongNote,
-                };
+            const expandedLogs = images.flatMap((img, idx) => {
+                const mapped = getMappedQuestions(img);
+                const baseTime = finalQuestionTimes[idx] ?? 0;
+                const perQuestionTime = Math.max(0, Math.round(baseTime / Math.max(mapped.length, 1)));
+                return mapped.map((q) => {
+                    const selected = getSelectedAnswer(q.question_id);
+                    const status = classifyAnswer(selected, q.answer_key);
+                    return {
+                        question_id: q.question_id,
+                        selected_answer: selected != null ? String(selected) : null,
+                        time_spent: perQuestionTime,
+                        is_wrong_note: status === "wrong",
+                    };
+                });
             });
+
+            // 동일 question_id 중복 저장 방지 (마지막 값 우선)
+            const logByQuestionId = new Map<number, {
+                question_id: number;
+                selected_answer: string | null;
+                time_spent: number;
+                is_wrong_note: boolean;
+            }>();
+            expandedLogs.forEach((log) => {
+                logByQuestionId.set(log.question_id, log);
+            });
+            const logs = Array.from(logByQuestionId.values());
 
             const res = await fetch(`${backendUrl}/api/v1/admin/solving-logs/batch`, {
                 method: "POST",
@@ -359,7 +463,7 @@ export default function RandomExamPage() {
         } finally {
             setSavingLogs(false);
         }
-    }, [images, selectedAnswers, backendUrl, logsSaved, savingLogs]);
+    }, [images, selectedAnswersByQuestionId, backendUrl, logsSaved, savingLogs]);
 
     // ── 다시 시작 ──
     const restart = () => {
@@ -377,40 +481,46 @@ export default function RandomExamPage() {
         let unknown = 0; // answer_key가 "미정"인 경우
 
         images.forEach((img, idx) => {
-            const selected = selectedAnswers[idx];
-            const answerKey = img.answer_key;
-
-            if (!answerKey || answerKey === "미정") {
-                unknown++;
-            } else if (selected == null) {
-                unanswered++;
-            } else if (String(selected) === String(answerKey)) {
-                correct++;
-            } else {
-                wrong++;
-            }
+            const mapped = getMappedQuestions(img);
+            mapped.forEach((q) => {
+                const selected = getSelectedAnswer(q.question_id);
+                const status = classifyAnswer(selected, q.answer_key);
+                if (status === "correct") correct++;
+                else if (status === "wrong") wrong++;
+                else if (status === "unanswered") unanswered++;
+                else unknown++;
+            });
         });
 
-        const gradable = images.length - unknown;
+        const totalMappedQuestions = correct + wrong + unanswered + unknown;
+        const gradable = totalMappedQuestions - unknown;
         const score = gradable > 0 ? Math.round((correct / gradable) * 100) : 0;
 
         return { correct, wrong, unanswered, unknown, score, gradable };
     };
 
     const getQuestionResult = (idx: number) => {
-        const selected = selectedAnswers[idx];
-        const answerKey = images[idx]?.answer_key;
+        const image = images[idx];
+        if (!image) return "unknown";
+        const mapped = getMappedQuestions(image);
+        const statuses = mapped.map((q) => classifyAnswer(getSelectedAnswer(q.question_id), q.answer_key));
 
-        if (!answerKey || answerKey === "미정") return "unknown";
-        if (selected == null) return "unanswered";
-        if (String(selected) === String(answerKey)) return "correct";
-        return "wrong";
+        if (statuses.includes("wrong")) return "wrong";
+        if (statuses.includes("unanswered")) return "unanswered";
+        if (statuses.includes("correct")) return "correct";
+        return "unknown";
     };
 
     // ── 리뷰 모드 ──
     const startReview = (idx?: number) => {
+        const targetIdx = idx ?? 0;
+        const targetImage = images[targetIdx];
+        const firstMappedQno = targetImage ? getMappedQuestions(targetImage)[0]?.question_no : undefined;
         setIsReviewing(true);
-        setReviewIndex(idx ?? 0);
+        setReviewIndex(targetIdx);
+        if (firstMappedQno != null) {
+            setActiveMappedQuestionNoByIndex((prev) => ({ ...prev, [targetIdx]: firstMappedQno }));
+        }
         setImageLoaded(false);
     };
 
@@ -423,17 +533,29 @@ export default function RandomExamPage() {
     const reviewPrev = () => {
         if (reviewIndex <= 0) return;
         stopAudio();
+        const nextIndex = reviewIndex - 1;
+        const nextImage = images[nextIndex];
+        const firstMappedQno = nextImage ? getMappedQuestions(nextImage)[0]?.question_no : undefined;
         setImageLoaded(false);
         setShowCommentary(false);
-        setReviewIndex((prev) => prev - 1);
+        setReviewIndex(nextIndex);
+        if (firstMappedQno != null) {
+            setActiveMappedQuestionNoByIndex((prev) => ({ ...prev, [nextIndex]: firstMappedQno }));
+        }
     };
 
     const reviewNext = () => {
         if (reviewIndex >= images.length - 1) return;
         stopAudio();
+        const nextIndex = reviewIndex + 1;
+        const nextImage = images[nextIndex];
+        const firstMappedQno = nextImage ? getMappedQuestions(nextImage)[0]?.question_no : undefined;
         setImageLoaded(false);
         setShowCommentary(false);
-        setReviewIndex((prev) => prev + 1);
+        setReviewIndex(nextIndex);
+        if (firstMappedQno != null) {
+            setActiveMappedQuestionNoByIndex((prev) => ({ ...prev, [nextIndex]: firstMappedQno }));
+        }
     };
 
     // 해설 가져오기
@@ -559,6 +681,9 @@ export default function RandomExamPage() {
     // ── 현재 문제 ──
     const activeIndex = isReviewing ? reviewIndex : currentIndex;
     const currentImage = images[activeIndex] || null;
+    const displayedQuestionNo = currentImage
+        ? formatQuestionNos(currentImage, isSelectMode ? activeIndex + 1 : currentImage.question_no)
+        : "";
 
     // ── 이미지 서빙 URL ──
     const imageUrl = currentImage
@@ -568,6 +693,13 @@ export default function RandomExamPage() {
     // 리뷰 모드에서의 현재 문제 결과
     const reviewResult = isReviewing ? getQuestionResult(reviewIndex) : null;
     const reviewImage = isReviewing ? images[reviewIndex] : null;
+    const reviewMappedQuestions = reviewImage ? getMappedQuestions(reviewImage) : [];
+    const activeReviewMappedQno = reviewMappedQuestions.length > 0
+        ? (activeMappedQuestionNoByIndex[reviewIndex] ?? reviewMappedQuestions[0].question_no)
+        : null;
+    const activeReviewMappedQuestion = reviewMappedQuestions.find((q) => q.question_no === activeReviewMappedQno)
+        ?? reviewMappedQuestions[0]
+        ?? null;
 
     return (
         <div className="exam-container">
@@ -626,7 +758,7 @@ export default function RandomExamPage() {
                         <div className="question-info">
                             <span className="q-number">{currentIndex + 1} / {images.length}</span>
                             <span className="q-meta">
-                                {currentImage.year}년 {currentImage.exam_type} {currentImage.subject} {currentImage.question_no}번
+                                {currentImage.year}년 {currentImage.exam_type} {currentImage.subject} {displayedQuestionNo}번
                             </span>
                         </div>
 
@@ -635,14 +767,19 @@ export default function RandomExamPage() {
                             {/* 왼쪽 정답 선택 버튼 */}
                             <div className="answer-panel">
                                 <span className="answer-label">정답</span>
-                                {[1, 2, 3, 4].map((num) => (
-                                    <button
-                                        key={num}
-                                        className={`answer-btn ${currentAnswer === num ? "selected" : ""}`}
-                                        onClick={() => selectAnswer(num)}
-                                    >
-                                        {num}
-                                    </button>
+                                {getMappedQuestions(currentImage).map((mq) => (
+                                    <div key={mq.question_id} className="answer-group">
+                                        <span className="answer-sub-label">{mq.question_no}번</span>
+                                        {[1, 2, 3, 4].map((num) => (
+                                            <button
+                                                key={`${mq.question_id}-${num}`}
+                                                className={`answer-btn ${getSelectedAnswer(mq.question_id) === num ? "selected" : ""}`}
+                                                onClick={() => selectAnswer(mq.question_id, num)}
+                                            >
+                                                {num}
+                                            </button>
+                                        ))}
+                                    </div>
                                 ))}
                             </div>
 
@@ -849,8 +986,9 @@ export default function RandomExamPage() {
                                     <tbody>
                                         {images.map((img, idx) => {
                                             const result = getQuestionResult(idx);
-                                            const selected = selectedAnswers[idx];
-                                            const answerKey = img.answer_key;
+                                            const hasKnownAnswer = getMappedQuestions(img).some(
+                                                (q) => q.answer_key && q.answer_key !== "미정"
+                                            );
                                             return (
                                                 <tr
                                                     key={idx}
@@ -860,19 +998,15 @@ export default function RandomExamPage() {
                                                 >
                                                     <td className="col-num">{idx + 1}</td>
                                                     <td className="col-subject">{img.subject}</td>
-                                                    <td className="col-qno">{img.question_no}번</td>
+                                                    <td className="col-qno">{formatQuestionNos(img, idx + 1)}번</td>
                                                     <td className="col-answer">
-                                                        {selected != null ? (
-                                                            <span className={`answer-badge ${result === "correct" ? "badge-correct" : result === "wrong" ? "badge-wrong" : ""}`}>
-                                                                {selected}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="answer-empty">-</span>
-                                                        )}
+                                                        <span className={`mapped-answer-text ${result === "correct" ? "mapped-answer-correct" : result === "wrong" ? "mapped-answer-wrong" : ""}`}>
+                                                            {formatMappedSelectedAnswers(img, selectedAnswersByQuestionId)}
+                                                        </span>
                                                     </td>
                                                     <td className="col-correct">
-                                                        {answerKey && answerKey !== "미정" ? (
-                                                            <span className="correct-badge">{answerKey}</span>
+                                                        {hasKnownAnswer ? (
+                                                            <span className="correct-badge">{formatMappedAnswerKey(img)}</span>
                                                         ) : (
                                                             <span className="answer-empty">미정</span>
                                                         )}
@@ -938,7 +1072,7 @@ export default function RandomExamPage() {
                         <div className="question-info">
                             <span className="q-number">{reviewIndex + 1} / {images.length}</span>
                             <span className="q-meta">
-                                {reviewImage.year}년 {reviewImage.exam_type} {reviewImage.subject} {reviewImage.question_no}번
+                                {reviewImage.year}년 {reviewImage.exam_type} {reviewImage.subject} {formatQuestionNos(reviewImage, reviewIndex + 1)}번
                             </span>
                         </div>
 
@@ -948,9 +1082,9 @@ export default function RandomExamPage() {
                             <div className="answer-panel review-answer-panel">
                                 <span className="answer-label">내 선택</span>
                                 {[1, 2, 3, 4].map((num) => {
-                                    const myAnswer = selectedAnswers[reviewIndex];
-                                    const correctAnswer = reviewImage.answer_key && reviewImage.answer_key !== "미정"
-                                        ? parseInt(reviewImage.answer_key) : null;
+                                    const myAnswer = activeReviewMappedQuestion ? getSelectedAnswer(activeReviewMappedQuestion.question_id) : null;
+                                    const correctAnswer = activeReviewMappedQuestion?.answer_key && activeReviewMappedQuestion.answer_key !== "미정"
+                                        ? parseInt(activeReviewMappedQuestion.answer_key) : null;
                                     const isSelected = myAnswer === num;
                                     const isCorrect = correctAnswer === num;
 
@@ -965,15 +1099,35 @@ export default function RandomExamPage() {
                                         </button>
                                     );
                                 })}
-                                {reviewImage.answer_key && reviewImage.answer_key !== "미정" && (
-                                    <span className="review-correct-label">정답: {reviewImage.answer_key}</span>
+                                {reviewMappedQuestions.length > 1 && (
+                                    <div className="mapped-qnos">
+                                        {reviewMappedQuestions.map((q) => (
+                                            <button
+                                                key={q.question_id}
+                                                className={`mapped-qno-chip ${activeReviewMappedQuestion?.question_id === q.question_id ? "active" : ""}`}
+                                                onClick={() => {
+                                                    stopAudio();
+                                                    setShowCommentary(false);
+                                                    setActiveMappedQuestionNoByIndex((prev) => ({ ...prev, [reviewIndex]: q.question_no }));
+                                                }}
+                                            >
+                                                {q.question_no}번
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {activeReviewMappedQuestion?.answer_key && activeReviewMappedQuestion.answer_key !== "미정" && (
+                                    <span className="review-correct-label">
+                                        정답: {activeReviewMappedQuestion.answer_key}
+                                        {reviewMappedQuestions.length > 1 ? ` (${activeReviewMappedQuestion.question_no}번)` : ""}
+                                    </span>
                                 )}
 
                                 {/* 해설 버튼 */}
                                 <button
                                     className={`commentary-toggle-btn ${showCommentary ? "active" : ""}`}
-                                    onClick={() => fetchCommentary(reviewImage.question_id)}
-                                    disabled={commentaryLoading}
+                                    onClick={() => activeReviewMappedQuestion && fetchCommentary(activeReviewMappedQuestion.question_id)}
+                                    disabled={commentaryLoading || !activeReviewMappedQuestion}
                                 >
                                     {commentaryLoading ? (
                                         <div className="spinner-sm" />
@@ -992,13 +1146,13 @@ export default function RandomExamPage() {
                                 {reviewResult === "wrong" && (
                                     <div className="tts-btn-group">
                                         <button
-                                            className={`tts-play-btn ${playingQuestionId === reviewImage.question_id ? "playing" : ""} ${audioNoteMap[reviewImage.question_id] ? "generated" : ""}`}
-                                            onClick={() => handleTTSPlay(reviewImage.question_id)}
-                                            disabled={generatingTTS === reviewImage.question_id}
+                                            className={`tts-play-btn ${playingQuestionId === activeReviewMappedQuestion?.question_id ? "playing" : ""} ${activeReviewMappedQuestion && audioNoteMap[activeReviewMappedQuestion.question_id] ? "generated" : ""}`}
+                                            onClick={() => activeReviewMappedQuestion && handleTTSPlay(activeReviewMappedQuestion.question_id)}
+                                            disabled={!activeReviewMappedQuestion || generatingTTS === activeReviewMappedQuestion.question_id}
                                         >
-                                            {generatingTTS === reviewImage.question_id ? (
+                                            {activeReviewMappedQuestion && generatingTTS === activeReviewMappedQuestion.question_id ? (
                                                 <><div className="spinner-sm" /><span>생성 중</span></>
-                                            ) : playingQuestionId === reviewImage.question_id ? (
+                                            ) : activeReviewMappedQuestion && playingQuestionId === activeReviewMappedQuestion.question_id ? (
                                                 <>
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                                                         <rect x="6" y="4" width="4" height="16" rx="1" />
@@ -1006,7 +1160,7 @@ export default function RandomExamPage() {
                                                     </svg>
                                                     <span>일시정지</span>
                                                 </>
-                                            ) : audioNoteMap[reviewImage.question_id] ? (
+                                            ) : activeReviewMappedQuestion && audioNoteMap[activeReviewMappedQuestion.question_id] ? (
                                                 <>
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                                                         <polygon points="5 3 19 12 5 21 5 3" />
@@ -1023,14 +1177,14 @@ export default function RandomExamPage() {
                                                 </>
                                             )}
                                         </button>
-                                        {playingQuestionId === reviewImage.question_id && (
+                                        {activeReviewMappedQuestion && playingQuestionId === activeReviewMappedQuestion.question_id && (
                                             <button className="tts-stop-btn" onClick={stopAudio} title="정지">
                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                                                     <rect x="4" y="4" width="16" height="16" rx="2" />
                                                 </svg>
                                             </button>
                                         )}
-                                        {audioNoteMap[reviewImage.question_id] && playingQuestionId !== reviewImage.question_id && (
+                                        {activeReviewMappedQuestion && audioNoteMap[activeReviewMappedQuestion.question_id] && playingQuestionId !== activeReviewMappedQuestion.question_id && (
                                             <span className="tts-saved-badge">저장됨</span>
                                         )}
                                     </div>
@@ -1103,7 +1257,16 @@ export default function RandomExamPage() {
                                         <span
                                             key={idx}
                                             className={`dot ${idx === reviewIndex ? "active" : ""} ${r === "correct" ? "dot-correct" : r === "wrong" ? "dot-wrong" : r === "unanswered" ? "dot-unanswered" : ""}`}
-                                            onClick={() => { setImageLoaded(false); setShowCommentary(false); setReviewIndex(idx); }}
+                                            onClick={() => {
+                                                stopAudio();
+                                                setImageLoaded(false);
+                                                setShowCommentary(false);
+                                                setReviewIndex(idx);
+                                                const firstMappedQno = getMappedQuestions(images[idx])[0]?.question_no;
+                                                if (firstMappedQno != null) {
+                                                    setActiveMappedQuestionNoByIndex((prev) => ({ ...prev, [idx]: firstMappedQno }));
+                                                }
+                                            }}
                                             style={{ cursor: "pointer" }}
                                         />
                                     );
@@ -1266,6 +1429,20 @@ export default function RandomExamPage() {
                     letter-spacing: 0.1em;
                     margin-bottom: 2px;
                 }
+                .answer-sub-label {
+                    font-size: 0.55rem;
+                    color: rgba(255,255,255,0.35);
+                    letter-spacing: 0.06em;
+                    margin-bottom: 2px;
+                }
+                .answer-group {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 6px;
+                    margin-bottom: 6px;
+                }
+                .answer-group:last-child { margin-bottom: 0; }
                 .answer-btn {
                     width: 40px; height: 40px;
                     border-radius: 50%;
@@ -1521,6 +1698,12 @@ export default function RandomExamPage() {
                     font-size: 0.72rem; font-weight: 700;
                 }
                 .answer-empty { color: rgba(255,255,255,0.15); }
+                .mapped-answer-text {
+                    font-size: 0.72rem;
+                    color: rgba(255,255,255,0.5);
+                }
+                .mapped-answer-correct { color: rgba(34,197,94,0.85); }
+                .mapped-answer-wrong { color: rgba(239,68,68,0.85); }
 
                 /* ── 채점 결과 배지 변형 ── */
                 .badge-correct {
@@ -1714,6 +1897,34 @@ export default function RandomExamPage() {
                     letter-spacing: 0.06em;
                     margin-top: 4px;
                     text-align: center;
+                }
+                .mapped-qnos {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 4px;
+                    margin-top: 6px;
+                    width: 100%;
+                    justify-content: center;
+                }
+                .mapped-qno-chip {
+                    border: 1px solid rgba(255,255,255,0.14);
+                    background: rgba(255,255,255,0.04);
+                    color: rgba(255,255,255,0.56);
+                    font-size: 0.58rem;
+                    border-radius: 7px;
+                    padding: 4px 7px;
+                    cursor: pointer;
+                    font-family: inherit;
+                    transition: all 0.2s ease;
+                }
+                .mapped-qno-chip:hover {
+                    border-color: rgba(250,204,21,0.4);
+                    color: rgba(250,204,21,0.9);
+                }
+                .mapped-qno-chip.active {
+                    border-color: rgba(250,204,21,0.45);
+                    background: rgba(250,204,21,0.12);
+                    color: rgba(250,204,21,0.95);
                 }
 
                 /* ── 해설 토글 버튼 ── */

@@ -9,6 +9,7 @@ from backend.domain.admin.spokes.agents.retrieval.rag_agent import (
 )
 from backend.domain.admin.spokes.agents.retrieval.mentoring_rag import (
     search_mentoring_knowledge,
+    search_with_profile_matching,
     process_mentoring_rag,
 )
 
@@ -19,6 +20,7 @@ __all__ = [
     "openai_only",
     "local_only",
     "search_mentoring_knowledge",
+    "search_with_profile_matching",
     "process_mentoring_rag",
 ]
 

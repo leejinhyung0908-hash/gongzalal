@@ -3,6 +3,10 @@
  * - POST: AI 학습 계획 생성 (분석 + RAG + EXAONE)
  */
 
+// Next.js Route Segment Config — EXAONE 생성 시간 고려
+export const maxDuration = 300; // 5분
+export const dynamic = "force-dynamic";
+
 type GenerateRequest = {
     user_id: number;
     question?: string;
@@ -75,7 +79,7 @@ export async function POST(request: Request) {
                         user_id,
                         question: question || "내 풀이 데이터를 분석해서 학습 계획을 세워줘",
                     }),
-                    signal: AbortSignal.timeout(120000), // EXAONE 생성 시간 고려
+                    signal: AbortSignal.timeout(300000), // 5분 — EXAONE + RAG 프로필 매칭 시간 고려
                 }
             );
 

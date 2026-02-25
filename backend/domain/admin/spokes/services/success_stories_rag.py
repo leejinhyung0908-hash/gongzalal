@@ -8,26 +8,16 @@ import os
 from typing import List, Dict, Any, Optional, Tuple
 import psycopg
 from pgvector.psycopg import register_vector
-from sentence_transformers import SentenceTransformer
-import torch
 
 from backend.dependencies import get_db_connection
+from backend.core.utils.embedding import generate_embedding
 
 
 class SuccessStoriesRAG:
     """합격 수기 RAG 서비스"""
 
     def __init__(self):
-        self._embedding_model = None
-        self._model_name = "nlpai-lab/KURE-v1"
-
-    def _load_embedding_model(self):
-        """KURE-v1 embedding 모델 로드"""
-        if self._embedding_model is None:
-            print(f"[SuccessStoriesRAG] KURE-v1 모델 로딩 중...", flush=True)
-            self._embedding_model = SentenceTransformer(self._model_name)
-            print(f"[SuccessStoriesRAG] KURE-v1 모델 로딩 완료", flush=True)
-        return self._embedding_model
+        pass
 
     def search_similar_stories(
         self,
@@ -48,15 +38,8 @@ class SuccessStoriesRAG:
             검색된 합격 수기 리스트 (유사도 내림차순)
         """
         try:
-            # Embedding 모델 로드
-            model = self._load_embedding_model()
-
-            # 질문 embedding 생성
-            query_embedding = model.encode(
-                query,
-                convert_to_tensor=False,
-                normalize_embeddings=True
-            ).tolist()
+            # 전역 싱글톤 KURE-v1으로 질문 embedding 생성
+            query_embedding = generate_embedding(query)
 
             # DB 연결
             conn = get_db_connection()

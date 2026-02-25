@@ -8,6 +8,7 @@ type UploadResult = {
     filename: string;
     totalLines: number;
     insertedCount: number;
+    duplicateCount: number;
     skippedCount: number;
     message: string;
     errors?: Array<{ line: number; error: string }>;
@@ -49,6 +50,7 @@ export default function MentoringUploadPage() {
                 filename: file.name,
                 totalLines: 0,
                 insertedCount: 0,
+                duplicateCount: 0,
                 skippedCount: 0,
                 message: "",
                 errors: [{ line: 0, error: "JSONL 파일만 업로드할 수 있습니다." }],
@@ -79,6 +81,7 @@ export default function MentoringUploadPage() {
                 filename: data?.filename ?? file.name,
                 totalLines: Number(data?.total_lines ?? 0),
                 insertedCount: Number(data?.inserted_count ?? 0),
+                duplicateCount: Number(data?.duplicate_count ?? 0),
                 skippedCount: Number(data?.skipped_count ?? 0),
                 message: data?.message ?? "",
                 errors: Array.isArray(data?.errors) ? data.errors : undefined,
@@ -95,6 +98,7 @@ export default function MentoringUploadPage() {
                 filename: file.name,
                 totalLines: 0,
                 insertedCount: 0,
+                duplicateCount: 0,
                 skippedCount: 0,
                 message: "",
                 errors: [
@@ -145,78 +149,124 @@ export default function MentoringUploadPage() {
         }
     };
 
-    // 자동 반복 중단용 ref
-    const abortRef = useRef(false);
+    // 폴링 인터벌 ref
+    const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleGenerateEmbeddings = async () => {
         setEmbeddingLoading(true);
         setEmbeddingResult(null);
-        abortRef.current = false;
-
-        let totalProcessed = 0;
-        let batchNum = 0;
 
         try {
-            // 남은 건이 0이 될 때까지 자동 반복
-            while (!abortRef.current) {
-                batchNum++;
-                setEmbeddingResult(`배치 #${batchNum} 처리 중... (누적 ${totalProcessed.toLocaleString()}건)`);
-
-                const res = await fetch(
-                    `${backendUrl}/api/v1/admin/mentoring-knowledge/enqueue-embeddings`,
-                    {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ batch_size: 500 }),
-                    }
-                );
-
-                if (!res.ok) {
-                    const err = await res.json().catch(() => ({}));
-                    throw new Error(err.detail || `HTTP ${res.status}`);
+            // 1) 백그라운드 임베딩 시작 요청 (즉시 응답)
+            const res = await fetch(
+                `${backendUrl}/api/v1/admin/mentoring-knowledge/enqueue-embeddings`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ batch_size: 50 }),
                 }
+            );
 
-                const data = await res.json();
-                const processed = data.processed_count ?? 0;
-                const remaining = data.remaining_count ?? 0;
-                totalProcessed += processed;
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || `HTTP ${res.status}`);
+            }
 
-                // 실시간 진행률 갱신
-                await fetchEmbeddingStatus();
+            const data = await res.json();
 
-                // 남은 건이 0이거나, 처리된 건이 0이면 종료
-                if (remaining === 0 || processed === 0) {
-                    setEmbeddingResult(
-                        `✓ 완료! 총 ${totalProcessed.toLocaleString()}건 임베딩 생성됨`
+            if (data.mode === "none") {
+                setEmbeddingResult("✓ 임베딩이 필요한 데이터가 없습니다.");
+                setEmbeddingLoading(false);
+                return;
+            }
+
+            if (data.mode === "background_running") {
+                setEmbeddingResult(`이미 진행 중: ${data.processed_count ?? 0}건 처리됨`);
+            } else {
+                setEmbeddingResult(
+                    `백그라운드 임베딩 시작: ${(data.total_count ?? 0).toLocaleString()}건 처리 예정...`
+                );
+            }
+
+            // 2) 진행 상황 폴링 시작 (3초 간격)
+            if (pollingRef.current) clearInterval(pollingRef.current);
+
+            pollingRef.current = setInterval(async () => {
+                try {
+                    const statusRes = await fetch(
+                        `${backendUrl}/api/v1/admin/mentoring-knowledge/embedding-job-status`
                     );
-                    break;
+                    if (!statusRes.ok) return;
+
+                    const status = await statusRes.json();
+                    const processed = status.processed ?? 0;
+                    const total = status.total ?? 0;
+                    const errors = status.errors ?? 0;
+                    const elapsed = status.elapsed_seconds ?? 0;
+
+                    // 임베딩 상태도 갱신
+                    await fetchEmbeddingStatus();
+
+                    if (status.running) {
+                        const pct = total > 0 ? Math.round((processed / total) * 100) : 0;
+                        const elapsedMin = Math.floor(elapsed / 60);
+                        const elapsedSec = Math.round(elapsed % 60);
+                        setEmbeddingResult(
+                            `처리 중: ${processed.toLocaleString()}/${total.toLocaleString()}건 (${pct}%) ` +
+                            `| 경과: ${elapsedMin}분 ${elapsedSec}초` +
+                            (errors > 0 ? ` | 오류: ${errors}건` : "")
+                        );
+                    } else {
+                        // 완료됨
+                        if (pollingRef.current) {
+                            clearInterval(pollingRef.current);
+                            pollingRef.current = null;
+                        }
+                        setEmbeddingLoading(false);
+
+                        if (processed > 0) {
+                            setEmbeddingResult(
+                                `✓ 완료! ${processed.toLocaleString()}건 임베딩 생성됨` +
+                                (errors > 0 ? ` (${errors}건 실패)` : "")
+                            );
+                        } else {
+                            setEmbeddingResult(status.message || "임베딩 작업이 종료되었습니다.");
+                        }
+
+                        // 통계 갱신
+                        fetchEmbeddingStatus();
+                        fetchStats();
+                    }
+                } catch {
+                    // 폴링 오류는 무시 (다음 폴링에서 재시도)
                 }
+            }, 3000);
 
-                setEmbeddingResult(
-                    `배치 #${batchNum} 완료 (${processed}건). 남은 ${remaining.toLocaleString()}건 처리 중...`
-                );
-            }
-
-            if (abortRef.current) {
-                setEmbeddingResult(
-                    `중단됨. 총 ${totalProcessed.toLocaleString()}건 처리 완료.`
-                );
-            }
-
-            // 최종 상태 갱신
-            fetchEmbeddingStatus();
-            fetchStats();
         } catch (error) {
             setEmbeddingResult(
-                `오류 (${totalProcessed}건 처리 후): ${error instanceof Error ? error.message : "알 수 없는 오류"}`
+                `오류: ${error instanceof Error ? error.message : "알 수 없는 오류"}`
             );
-        } finally {
             setEmbeddingLoading(false);
         }
     };
 
-    const handleStopEmbeddings = () => {
-        abortRef.current = true;
+    const handleStopEmbeddings = async () => {
+        try {
+            await fetch(
+                `${backendUrl}/api/v1/admin/mentoring-knowledge/stop-embeddings`,
+                { method: "POST" }
+            );
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+            }
+            setEmbeddingLoading(false);
+            setEmbeddingResult("중단 요청됨. 현재 배치 완료 후 중단됩니다.");
+            fetchEmbeddingStatus();
+            fetchStats();
+        } catch {
+            setEmbeddingResult("중단 요청 실패");
+        }
     };
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -249,6 +299,7 @@ export default function MentoringUploadPage() {
                     filename: "",
                     totalLines: 0,
                     insertedCount: 0,
+                    duplicateCount: 0,
                     skippedCount: 0,
                     message: "",
                     errors: [
@@ -347,8 +398,11 @@ export default function MentoringUploadPage() {
                         {uploadResult.insertedCount > 0 && (
                             <p><span className="label">삽입 건수</span> {uploadResult.insertedCount.toLocaleString()}건</p>
                         )}
+                        {uploadResult.duplicateCount > 0 && (
+                            <p><span className="label">중복 스킵</span> <span style={{ color: '#f59e0b' }}>{uploadResult.duplicateCount.toLocaleString()}건 (이미 존재)</span></p>
+                        )}
                         {uploadResult.skippedCount > 0 && (
-                            <p><span className="label">스킵 건수</span> {uploadResult.skippedCount.toLocaleString()}건</p>
+                            <p><span className="label">오류 스킵</span> {uploadResult.skippedCount.toLocaleString()}건</p>
                         )}
                         {uploadResult.message && (
                             <p><span className="label">결과</span> {uploadResult.message}</p>

@@ -1,3 +1,7 @@
+// Next.js Route Segment Config — 멘토링 RAG + EXAONE 생성 시간 고려
+export const maxDuration = 120; // 2분
+export const dynamic = "force-dynamic";
+
 type ChatRequest = {
   question: string;
   // backend ChatRequest와 동일하게 graph 모드까지 지원
@@ -67,8 +71,8 @@ export async function POST(request: Request) {
           ...(cookieHeader ? { Cookie: cookieHeader } : {}),
         },
         body: JSON.stringify({ question: question.trim(), mode, thread_id }),
-        // 타임아웃 설정 (60초 - 모델 로드 시간 고려)
-        signal: AbortSignal.timeout(60000),
+        // 타임아웃 설정 (120초 - 멘토링 RAG + EXAONE 생성 시간 고려)
+        signal: AbortSignal.timeout(120000),
       });
 
       console.log("[Next.js API] 응답 상태:", response.status, response.statusText);
@@ -107,7 +111,7 @@ export async function POST(request: Request) {
 
       // 타임아웃 에러인지 확인
       if (errorName === "TimeoutError" || errorMessage.includes("timeout")) {
-        console.error("[Next.js API] 타임아웃: 백엔드 서버가 30초 내에 응답하지 않았습니다.");
+        console.error("[Next.js API] 타임아웃: 백엔드 서버가 120초 내에 응답하지 않았습니다.");
       }
 
       return Response.json(

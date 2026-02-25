@@ -146,57 +146,21 @@ class ExamAgent:
     def _load_exaone_model(self, model_dir: Optional[Path] = None):
         """EXAONE 모델을 로드합니다.
 
+        중복 로드를 방지하기 위해 전역 싱글톤(get_llm → ModelLoader 캐시)을 사용합니다.
+        서버 시작 시 main.py lifespan에서 이미 로드된 인스턴스를 재사용합니다.
+
         Args:
-            model_dir: 모델 디렉토리 경로
+            model_dir: 모델 디렉토리 경로 (무시됨 — 싱글톤 사용)
 
         Returns:
             ExaoneLLM 인스턴스
         """
-        if model_dir is None:
-            model_dir = self._get_default_model_dir()
-
-        # 프로젝트 루트 찾기
-        current_file = Path(__file__)
-        project_root = current_file.parent.parent.parent.parent.parent.parent
-
-        # EXAONE 베이스 모델 경로
-        base_model_path = settings.EXAONE_BASE_MODEL_PATH
-        base_model_path_obj = Path(base_model_path)
-
-        if not base_model_path_obj.is_absolute():
-            base_model_path = project_root / base_model_path_obj
-        else:
-            base_model_path = base_model_path_obj
-
-        if not base_model_path.exists():
-            logger.warning(f"[ExamAgent] EXAONE 모델 경로를 찾을 수 없습니다: {base_model_path}")
-            base_model_path = project_root / "artifacts" / "base-models" / "exaone"
-
-        # LoRA 어댑터 경로
-        lora_path = os.getenv(
-            "EXAONE_SUCCESS_STORIES_LORA_PATH",
-            "artifacts/lora-adapters/exaone-success-stories"
-        )
-        lora_path_obj = Path(lora_path)
-
-        if not lora_path_obj.is_absolute():
-            lora_path_obj = project_root / lora_path_obj
-
-        if not lora_path_obj.exists():
-            logger.info(f"[ExamAgent] LoRA 어댑터 경로를 찾을 수 없습니다: {lora_path_obj}. 기본 모델만 사용합니다.")
-            lora_path = None
-        else:
-            lora_path = str(lora_path_obj)
-
-        logger.info(f"[ExamAgent] EXAONE 모델 로드 중: {base_model_path}")
-
         try:
-            exaone_llm = ExaoneLLM(
-                model_path=str(base_model_path),
-                lora_adapter_path=lora_path,
-                load_in_4bit=True,
-            )
-            logger.info("[ExamAgent] EXAONE 모델 로드 완료")
+            from backend.dependencies import get_llm
+            exaone_llm = get_llm()
+            if not exaone_llm.is_loaded():
+                exaone_llm.load()
+            logger.info("[ExamAgent] EXAONE 모델 로드 완료 (싱글톤 공유)")
             return exaone_llm
         except Exception as e:
             logger.error(f"[ExamAgent] EXAONE 모델 로드 실패: {e}", exc_info=True)

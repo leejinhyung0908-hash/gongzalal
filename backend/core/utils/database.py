@@ -22,7 +22,7 @@ def search_similar(
             cur.execute(
                 """
                 SELECT
-                    COALESCE(context, '') || ' ' || COALESCE(response, '') AS content,
+                    COALESCE(search_text, '') AS content,
                     knowledge_vector <=> %s::vector AS distance
                 FROM mentoring_knowledge
                 WHERE knowledge_vector IS NOT NULL

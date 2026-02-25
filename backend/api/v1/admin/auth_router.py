@@ -266,10 +266,21 @@ def _revoke_user_refresh_tokens_db(user_id: str) -> bool:
         return False
 
 
-# ─── Users 테이블 upsert ──────────────────────────────────────────
+# ─── Users 테이블 upsert (social_accounts 연동) ─────────────────────
 
-def _upsert_user(social_id: str, provider: str, display_name: str = None) -> Dict[str, Any]:
-    """소셜 로그인 시 users 테이블에 사용자를 생성하거나 업데이트한다.
+def _upsert_user(
+    social_id: str,
+    provider: str,
+    display_name: str = None,
+    email: str = None,
+) -> Dict[str, Any]:
+    """소셜 로그인 시 사용자를 생성하거나 기존 사용자에 소셜 계정을 연결한다.
+
+    조회 우선순위:
+      1. social_accounts에서 (provider, social_id)로 기존 사용자 찾기
+      2. 이메일이 있으면 users.email 또는 social_accounts.email로 기존 사용자 찾기
+      3. 기존 users.social_id 호환 (마이그레이션 전 레거시)
+      4. 모두 실패 시 새 사용자 생성
 
     Returns:
         {"id": int, "social_id": str, "display_name": str, "is_new": bool}
@@ -277,42 +288,248 @@ def _upsert_user(social_id: str, provider: str, display_name: str = None) -> Dic
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
-            # 기존 사용자 조회
+            # ── 1단계: social_accounts에서 (provider, social_id) 조회 ──
             cur.execute(
-                "SELECT id, display_name FROM users WHERE social_id = %s",
-                (social_id,)
+                """
+                SELECT sa.user_id, u.display_name
+                FROM social_accounts sa
+                JOIN users u ON u.id = sa.user_id
+                WHERE sa.provider = %s AND sa.social_id = %s
+                """,
+                (provider, social_id),
             )
             row = cur.fetchone()
 
             if row:
-                # 기존 사용자 → last_login 갱신
+                # 이미 연동된 소셜 계정 → last_login 갱신
+                user_id = row[0]
                 cur.execute(
                     "UPDATE users SET last_login = NOW() WHERE id = %s RETURNING id, display_name",
-                    (row[0],)
+                    (user_id,),
                 )
                 updated = cur.fetchone()
+                # 이메일 업데이트 (없었을 수 있음)
+                if email:
+                    cur.execute(
+                        "UPDATE social_accounts SET email = %s WHERE provider = %s AND social_id = %s AND (email IS NULL OR email = '')",
+                        (email, provider, social_id),
+                    )
+                    cur.execute(
+                        "UPDATE users SET email = %s WHERE id = %s AND (email IS NULL OR email = '')",
+                        (email, user_id),
+                    )
                 conn.commit()
-                logger.info(f"[Auth/Users] 기존 사용자 로그인: id={updated[0]}, name={updated[1]}")
+                logger.info(f"[Auth/Users] 기존 소셜 계정 로그인: id={updated[0]}, provider={provider}")
                 return {"id": updated[0], "social_id": social_id, "display_name": updated[1], "is_new": False}
-            else:
-                # 신규 사용자 → 생성
-                name = display_name or f"{provider}_{social_id[:8]}"
+
+            # ── 2단계: 이메일로 기존 사용자 찾기 (계정 연동) ──
+            existing_user_id = None
+
+            if email:
+                # 2a. users.email로 찾기
+                cur.execute(
+                    "SELECT id, display_name FROM users WHERE email = %s LIMIT 1",
+                    (email,),
+                )
+                email_row = cur.fetchone()
+                if email_row:
+                    existing_user_id = email_row[0]
+                    logger.info(f"[Auth/Users] 이메일 매칭으로 기존 사용자 발견: id={existing_user_id}, email={email}")
+
+                # 2b. social_accounts.email로 찾기
+                if not existing_user_id:
+                    cur.execute(
+                        "SELECT user_id FROM social_accounts WHERE email = %s LIMIT 1",
+                        (email,),
+                    )
+                    sa_row = cur.fetchone()
+                    if sa_row:
+                        existing_user_id = sa_row[0]
+                        logger.info(f"[Auth/Users] social_accounts 이메일 매칭: id={existing_user_id}")
+
+            # ── 3단계: 레거시 users.social_id 호환 ──
+            if not existing_user_id:
+                cur.execute(
+                    "SELECT id, display_name FROM users WHERE social_id = %s",
+                    (social_id,),
+                )
+                legacy_row = cur.fetchone()
+                if legacy_row:
+                    existing_user_id = legacy_row[0]
+                    logger.info(f"[Auth/Users] 레거시 social_id 매칭: id={existing_user_id}")
+
+            if existing_user_id:
+                # 기존 사용자에 새 소셜 계정 연결
                 cur.execute(
                     """
-                    INSERT INTO users (display_name, social_id, provider, registration_date, last_login)
-                    VALUES (%s, %s, %s, NOW(), NOW())
-                    RETURNING id, display_name
+                    INSERT INTO social_accounts (user_id, provider, social_id, email)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (provider, social_id) DO UPDATE SET email = EXCLUDED.email
                     """,
-                    (name, social_id, provider)
+                    (existing_user_id, provider, social_id, email),
                 )
-                created = cur.fetchone()
+                cur.execute(
+                    "UPDATE users SET last_login = NOW() WHERE id = %s RETURNING id, display_name",
+                    (existing_user_id,),
+                )
+                updated = cur.fetchone()
+                # 이메일 업데이트
+                if email:
+                    cur.execute(
+                        "UPDATE users SET email = %s WHERE id = %s AND (email IS NULL OR email = '')",
+                        (email, existing_user_id),
+                    )
                 conn.commit()
-                logger.info(f"[Auth/Users] 신규 사용자 생성: id={created[0]}, name={created[1]}, social_id={social_id}")
-                return {"id": created[0], "social_id": social_id, "display_name": created[1], "is_new": True}
+                logger.info(
+                    f"[Auth/Users] 기존 사용자에 {provider} 계정 연동 완료: "
+                    f"user_id={updated[0]}, social_id={social_id}"
+                )
+                return {"id": updated[0], "social_id": social_id, "display_name": updated[1], "is_new": False}
+
+            # ── 4단계: 신규 사용자 생성 ──
+            name = display_name or f"{provider}_{social_id[:8]}"
+            cur.execute(
+                """
+                INSERT INTO users (display_name, social_id, provider, email, registration_date, last_login)
+                VALUES (%s, %s, %s, %s, NOW(), NOW())
+                RETURNING id, display_name
+                """,
+                (name, social_id, provider, email),
+            )
+            created = cur.fetchone()
+            new_user_id = created[0]
+
+            # social_accounts에도 추가
+            cur.execute(
+                """
+                INSERT INTO social_accounts (user_id, provider, social_id, email)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (provider, social_id) DO NOTHING
+                """,
+                (new_user_id, provider, social_id, email),
+            )
+            conn.commit()
+            logger.info(
+                f"[Auth/Users] 신규 사용자 생성: id={new_user_id}, "
+                f"name={created[1]}, provider={provider}, social_id={social_id}"
+            )
+            return {"id": new_user_id, "social_id": social_id, "display_name": created[1], "is_new": True}
+
     except Exception as e:
         logger.error(f"[Auth/Users] upsert 실패: {e}", exc_info=True)
-        # 실패해도 로그인은 계속 진행 (user 없이)
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         return {"id": None, "social_id": social_id, "display_name": None, "is_new": False}
+
+
+# ─── 소셜 계정 연동 (수동 링크) ────────────────────────────────────────
+
+async def _process_social_link(
+    request: Request,
+    provider: str,
+    social_id: str,
+    email: str = None,
+    display_name: str = None,
+) -> RedirectResponse:
+    """현재 로그인된 사용자에 소셜 계정을 수동으로 연동한다.
+
+    link 모드 콜백에서 호출. JWT 쿠키 → 현재 user_id 확인 → social_accounts INSERT.
+    """
+    frontend_url = _get_frontend_callback_url()
+
+    # 1. JWT에서 현재 사용자 확인
+    token = request.cookies.get("Authorization")
+    payload = verify_jwt(token) if token else None
+
+    if not payload:
+        logger.warning("[Auth/Link] 연동 시도 중 인증 만료")
+        return RedirectResponse(
+            url=f"{frontend_url}/user?link_error=auth", status_code=302
+        )
+
+    current_social_id = payload.get("sub")
+
+    # 2. 현재 user_id 찾기
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT user_id FROM social_accounts WHERE social_id = %s LIMIT 1",
+                (current_social_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                cur.execute(
+                    "SELECT id FROM users WHERE social_id = %s",
+                    (current_social_id,),
+                )
+                row = cur.fetchone()
+
+            if not row:
+                logger.warning(f"[Auth/Link] 현재 사용자 찾을 수 없음: social_id={current_social_id}")
+                return RedirectResponse(
+                    url=f"{frontend_url}/user?link_error=user_not_found", status_code=302
+                )
+
+            current_user_id = row[0]
+
+            # 3. 이미 연동된 소셜 계정인지 확인
+            cur.execute(
+                "SELECT user_id FROM social_accounts WHERE provider = %s AND social_id = %s",
+                (provider, social_id),
+            )
+            existing = cur.fetchone()
+
+            if existing:
+                if existing[0] == current_user_id:
+                    logger.info(f"[Auth/Link] 이미 연동된 계정: provider={provider}, user_id={current_user_id}")
+                    return RedirectResponse(
+                        url=f"{frontend_url}/user?linked={provider}", status_code=302
+                    )
+                else:
+                    logger.warning(
+                        f"[Auth/Link] 다른 사용자에 연동된 계정: provider={provider}, "
+                        f"social_id={social_id}, existing_user_id={existing[0]}"
+                    )
+                    return RedirectResponse(
+                        url=f"{frontend_url}/user?link_error=already_linked", status_code=302
+                    )
+
+            # 4. 새 소셜 계정 연동
+            cur.execute(
+                """
+                INSERT INTO social_accounts (user_id, provider, social_id, email)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (current_user_id, provider, social_id, email),
+            )
+            # 이메일 업데이트 (없었을 수 있음)
+            if email:
+                cur.execute(
+                    "UPDATE users SET email = %s WHERE id = %s AND (email IS NULL OR email = '')",
+                    (email, current_user_id),
+                )
+            conn.commit()
+
+        logger.info(
+            f"[Auth/Link] 계정 연동 완료: user_id={current_user_id}, "
+            f"provider={provider}, social_id={social_id}"
+        )
+        return RedirectResponse(
+            url=f"{frontend_url}/user?linked={provider}", status_code=302
+        )
+
+    except Exception as e:
+        logger.error(f"[Auth/Link] 계정 연동 실패: {e}", exc_info=True)
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return RedirectResponse(
+            url=f"{frontend_url}/user?link_error=server_error", status_code=302
+        )
 
 
 # ─── 소셜 로그인 공통 처리 ──────────────────────────────────────────
@@ -322,10 +539,11 @@ async def _process_social_login(
     social_user_id: str,
     response: Response,
     display_name: str = None,
+    email: str = None,
 ) -> RedirectResponse:
     """소셜 로그인 공통 후처리: 사용자 upsert → JWT 발급 → 저장 → 쿠키 설정 → 프론트엔드 리다이렉트."""
     # 0. users 테이블에 사용자 upsert (DB user_id 확보)
-    user_info = _upsert_user(social_user_id, provider, display_name)
+    user_info = _upsert_user(social_user_id, provider, display_name, email=email)
     db_user_id = user_info.get("id")  # 정수형 DB id
 
     # 1. JWT 발급 (sub에 social_user_id 사용, db_user_id를 추가 클레임으로 포함)
@@ -375,8 +593,8 @@ async def _process_social_login(
 # ─── 카카오 로그인 ──────────────────────────────────────────────────
 
 @router.get("/api/auth/kakao/login")
-async def kakao_login():
-    """카카오 인가 URL 반환."""
+async def kakao_login(force_reauth: bool = False):
+    """카카오 인가 URL 반환. force_reauth=true 시 재인증 강제."""
     client_id = os.getenv("KAKAO_REST_API_KEY", "")
     redirect_uri = os.getenv(
         "KAKAO_REDIRECT_URI",
@@ -392,12 +610,41 @@ async def kakao_login():
         f"&redirect_uri={redirect_uri}"
         f"&response_type=code"
     )
+    if force_reauth:
+        auth_url += "&prompt=login"
+
+    return {"authUrl": auth_url}
+
+
+@router.get("/api/auth/kakao/link")
+async def kakao_link(request: Request):
+    """현재 로그인된 사용자에 카카오 계정 연동 시작."""
+    token = request.cookies.get("Authorization")
+    if not token or not verify_jwt(token):
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+
+    client_id = os.getenv("KAKAO_REST_API_KEY", "")
+    redirect_uri = os.getenv(
+        "KAKAO_REDIRECT_URI",
+        f"{os.getenv('API_BASE_URL', 'http://localhost:8000')}/api/auth/kakao/callback"
+    )
+
+    if not client_id:
+        raise HTTPException(status_code=500, detail="KAKAO_REST_API_KEY가 설정되지 않았습니다.")
+
+    auth_url = (
+        f"https://kauth.kakao.com/oauth/authorize"
+        f"?client_id={client_id}"
+        f"&redirect_uri={redirect_uri}"
+        f"&response_type=code"
+        f"&state=link"
+    )
 
     return {"authUrl": auth_url}
 
 
 @router.get("/api/auth/kakao/callback")
-async def kakao_callback(code: str, response: Response):
+async def kakao_callback(code: str, request: Request, response: Response, state: str = None):
     """카카오 인가 코드 콜백 처리."""
     client_id = os.getenv("KAKAO_REST_API_KEY", "")
     client_secret = os.getenv("KAKAO_CLIENT_SECRET", "")
@@ -450,18 +697,25 @@ async def kakao_callback(code: str, response: Response):
             if not kakao_id:
                 raise HTTPException(status_code=500, detail="카카오 사용자 ID를 찾을 수 없습니다.")
 
-            # 닉네임 추출 (카카오 프로필)
+            # 닉네임 + 이메일 추출 (카카오 프로필)
             kakao_nickname = None
+            kakao_email = None
             kakao_props = user_info.get("properties", {})
             if kakao_props:
                 kakao_nickname = kakao_props.get("nickname")
+            kakao_account = user_info.get("kakao_account", {})
             if not kakao_nickname:
-                kakao_account = user_info.get("kakao_account", {})
                 profile = kakao_account.get("profile", {})
                 kakao_nickname = profile.get("nickname")
+            kakao_email = kakao_account.get("email")
 
-        # 3. JWT 발급 및 리다이렉트
-        return await _process_social_login("kakao", kakao_id, response, display_name=kakao_nickname)
+        # 3. 연동 모드 vs 로그인 모드
+        is_link_mode = state and state.startswith("link")
+
+        if is_link_mode:
+            return await _process_social_link(request, "kakao", kakao_id, email=kakao_email, display_name=kakao_nickname)
+        else:
+            return await _process_social_login("kakao", kakao_id, response, display_name=kakao_nickname, email=kakao_email)
 
     except HTTPException:
         raise
@@ -473,8 +727,8 @@ async def kakao_callback(code: str, response: Response):
 # ─── 네이버 로그인 ──────────────────────────────────────────────────
 
 @router.get("/api/auth/naver/login")
-async def naver_login():
-    """네이버 인가 URL 반환."""
+async def naver_login(force_reauth: bool = False):
+    """네이버 인가 URL 반환. force_reauth=true 시 재인증 강제."""
     client_id = os.getenv("NAVER_CLIENT_ID", "")
     redirect_uri = os.getenv(
         "NAVER_REDIRECT_URI",
@@ -493,11 +747,42 @@ async def naver_login():
         f"&state={state}"
     )
 
+    # 네이버는 prompt=login 파라미터를 지원하지 않으므로,
+    # 프론트엔드에서 팝업으로 세션 해제 후 인증 URL로 리다이렉트합니다.
+    # (force_reauth 파라미터는 프론트엔드에서 처리)
+    return {"authUrl": auth_url}
+
+
+@router.get("/api/auth/naver/link")
+async def naver_link(request: Request):
+    """현재 로그인된 사용자에 네이버 계정 연동 시작."""
+    token = request.cookies.get("Authorization")
+    if not token or not verify_jwt(token):
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+
+    client_id = os.getenv("NAVER_CLIENT_ID", "")
+    redirect_uri = os.getenv(
+        "NAVER_REDIRECT_URI",
+        f"{os.getenv('API_BASE_URL', 'http://localhost:8000')}/api/auth/naver/callback"
+    )
+
+    if not client_id:
+        raise HTTPException(status_code=500, detail="NAVER_CLIENT_ID가 설정되지 않았습니다.")
+
+    state = f"link_{uuid.uuid4()}"
+    auth_url = (
+        f"https://nid.naver.com/oauth2.0/authorize"
+        f"?response_type=code"
+        f"&client_id={client_id}"
+        f"&redirect_uri={redirect_uri}"
+        f"&state={state}"
+    )
+
     return {"authUrl": auth_url}
 
 
 @router.get("/api/auth/naver/callback")
-async def naver_callback(code: str, state: str, response: Response):
+async def naver_callback(code: str, state: str, request: Request, response: Response):
     """네이버 인가 코드 콜백 처리."""
     client_id = os.getenv("NAVER_CLIENT_ID", "")
     client_secret = os.getenv("NAVER_CLIENT_SECRET", "")
@@ -551,9 +836,15 @@ async def naver_callback(code: str, state: str, response: Response):
                 raise HTTPException(status_code=500, detail="네이버 사용자 ID를 찾을 수 없습니다.")
 
             naver_nickname = naver_response.get("nickname") or naver_response.get("name")
+            naver_email = naver_response.get("email")
 
-        # 3. JWT 발급 및 리다이렉트
-        return await _process_social_login("naver", naver_id, response, display_name=naver_nickname)
+        # 3. 연동 모드 vs 로그인 모드
+        is_link_mode = state and state.startswith("link")
+
+        if is_link_mode:
+            return await _process_social_link(request, "naver", naver_id, email=naver_email, display_name=naver_nickname)
+        else:
+            return await _process_social_login("naver", naver_id, response, display_name=naver_nickname, email=naver_email)
 
     except HTTPException:
         raise
@@ -565,8 +856,37 @@ async def naver_callback(code: str, state: str, response: Response):
 # ─── 구글 로그인 ────────────────────────────────────────────────────
 
 @router.get("/api/auth/google/login")
-async def google_login():
-    """구글 인가 URL 반환."""
+async def google_login(force_reauth: bool = False):
+    """구글 인가 URL 반환. force_reauth=true 시 재인증 강제."""
+    client_id = os.getenv("GOOGLE_CLIENT_ID", "")
+    redirect_uri = os.getenv(
+        "GOOGLE_REDIRECT_URI",
+        f"{os.getenv('API_BASE_URL', 'http://localhost:8000')}/api/auth/google/callback"
+    )
+
+    if not client_id:
+        raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_ID가 설정되지 않았습니다.")
+
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "login" if force_reauth else "consent",
+    }
+    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+
+    return {"authUrl": auth_url}
+
+
+@router.get("/api/auth/google/link")
+async def google_link(request: Request):
+    """현재 로그인된 사용자에 구글 계정 연동 시작."""
+    token = request.cookies.get("Authorization")
+    if not token or not verify_jwt(token):
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+
     client_id = os.getenv("GOOGLE_CLIENT_ID", "")
     redirect_uri = os.getenv(
         "GOOGLE_REDIRECT_URI",
@@ -583,6 +903,7 @@ async def google_login():
         "scope": "openid email profile",
         "access_type": "offline",
         "prompt": "consent",
+        "state": "link",
     }
     auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
 
@@ -590,7 +911,7 @@ async def google_login():
 
 
 @router.get("/api/auth/google/callback")
-async def google_callback(code: str, response: Response):
+async def google_callback(code: str, request: Request, response: Response, state: str = None):
     """구글 인가 코드 콜백 처리."""
     client_id = os.getenv("GOOGLE_CLIENT_ID", "")
     client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "")
@@ -643,9 +964,15 @@ async def google_callback(code: str, response: Response):
                 raise HTTPException(status_code=500, detail="구글 사용자 ID를 찾을 수 없습니다.")
 
             google_nickname = user_info.get("name") or user_info.get("email", "").split("@")[0]
+            google_email = user_info.get("email")
 
-        # 3. JWT 발급 및 리다이렉트
-        return await _process_social_login("google", google_id, response, display_name=google_nickname)
+        # 3. 연동 모드 vs 로그인 모드
+        is_link_mode = state and state.startswith("link")
+
+        if is_link_mode:
+            return await _process_social_link(request, "google", google_id, email=google_email, display_name=google_nickname)
+        else:
+            return await _process_social_login("google", google_id, response, display_name=google_nickname, email=google_email)
 
     except HTTPException:
         raise
@@ -693,29 +1020,66 @@ async def get_current_user(request: Request):
     except Exception:
         pass  # Redis 미사용 시 건너뛰기
 
-    # DB에서 사용자 정보 조회 (social_id → DB user_id 매핑)
+    # DB에서 사용자 정보 조회 (social_accounts → users)
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
+            # 1) social_accounts에서 해당 social_id의 user_id 조회
             cur.execute(
-                "SELECT id, display_name, provider FROM users WHERE social_id = %s",
-                (social_id,)
+                """
+                SELECT sa.user_id, u.display_name, sa.provider
+                FROM social_accounts sa
+                JOIN users u ON u.id = sa.user_id
+                WHERE sa.social_id = %s
+                LIMIT 1
+                """,
+                (social_id,),
             )
             row = cur.fetchone()
 
-        if row:
-            return {
-                "id": row[0],            # DB 정수 ID (FK 참조용)
-                "social_id": social_id,   # 소셜 로그인 원본 ID
-                "display_name": row[1],
-                "provider": row[2],
-            }
-        else:
-            # DB에 아직 사용자가 없으면 social_id만 반환
-            return {"id": None, "social_id": social_id, "display_name": None, "provider": None}
+            # 2) social_accounts에 없으면 레거시 users.social_id로 조회
+            if not row:
+                cur.execute(
+                    "SELECT id, display_name, provider FROM users WHERE social_id = %s",
+                    (social_id,),
+                )
+                row = cur.fetchone()
+
+            if not row:
+                return {"id": None, "social_id": social_id, "display_name": None, "provider": None, "linked_accounts": []}
+
+            user_id = row[0]
+
+            # 3) 해당 사용자의 모든 연동 소셜 계정 조회
+            cur.execute(
+                """
+                SELECT provider, social_id, email, linked_at
+                FROM social_accounts
+                WHERE user_id = %s
+                ORDER BY linked_at
+                """,
+                (user_id,),
+            )
+            linked_accounts = [
+                {
+                    "provider": sa_row[0],
+                    "social_id": sa_row[1],
+                    "email": sa_row[2],
+                    "linked_at": sa_row[3].isoformat() if sa_row[3] else None,
+                }
+                for sa_row in cur.fetchall()
+            ]
+
+        return {
+            "id": user_id,
+            "social_id": social_id,
+            "display_name": row[1],
+            "provider": row[2],
+            "linked_accounts": linked_accounts,
+        }
     except Exception as e:
         logger.warning(f"[Auth/me] DB 조회 실패, social_id만 반환: {e}")
-        return {"id": None, "social_id": social_id, "display_name": None, "provider": None}
+        return {"id": None, "social_id": social_id, "display_name": None, "provider": None, "linked_accounts": []}
 
 
 # ─── 토큰 갱신 ──────────────────────────────────────────────────────
@@ -785,35 +1149,52 @@ async def refresh_token(request: Request, response: Response):
 
 # ─── 로그아웃 ───────────────────────────────────────────────────────
 
-@router.post("/api/auth/logout")
-async def logout(request: Request, response: Response):
-    """로그아웃: Redis access token + DB refresh token 삭제 + 쿠키 삭제."""
+def _perform_logout(request: Request):
+    """로그아웃 공통 로직: Redis/DB 토큰 무효화."""
     access_token = request.cookies.get("Authorization")
     refresh_tok = request.cookies.get("RefreshToken")
 
     # 1. Redis에서 Access Token 삭제
     if access_token:
         try:
-            # Access Token에서 user_id 추출
             payload = verify_jwt(access_token)
             if payload:
                 user_id = payload.get("sub")
-                # 해당 사용자의 모든 DB refresh tokens revoke
                 if user_id:
                     _revoke_user_refresh_tokens_db(user_id)
-
             delete_jwt_token(access_token)
         except Exception as e:
             logger.warning(f"[Auth] 로그아웃 - Redis 토큰 삭제 실패: {e}")
 
-    # 2. Neon DB에서 Refresh Token revoke (개별)
+    # 2. Neon DB에서 Refresh Token revoke
     if refresh_tok:
         _revoke_refresh_token_db(refresh_tok)
 
-    # 3. 쿠키 삭제
-    _clear_auth_cookies(response)
 
+@router.post("/api/auth/logout")
+async def logout(request: Request, response: Response):
+    """로그아웃 (JSON 응답): Redis/DB 토큰 삭제 + 쿠키 삭제."""
+    _perform_logout(request)
+    _clear_auth_cookies(response)
     return {"success": True, "message": "로그아웃되었습니다."}
+
+
+@router.get("/api/auth/logout")
+async def logout_redirect(request: Request):
+    """로그아웃 (리다이렉트): 쿠키 삭제 후 프론트엔드 로그인 페이지로 302 리다이렉트.
+
+    로그인 시 쿠키가 302 리다이렉트 응답으로 설정되므로,
+    로그아웃도 동일하게 리다이렉트 응답으로 삭제해야
+    크로스오리진 환경에서 브라우저가 확실하게 쿠키를 제거합니다.
+    """
+    _perform_logout(request)
+
+    frontend_url = _get_frontend_callback_url()
+    redirect_response = RedirectResponse(url=f"{frontend_url}/login", status_code=302)
+    _clear_auth_cookies(redirect_response)
+
+    logger.info(f"[Auth] 로그아웃 리다이렉트 → {frontend_url}/login")
+    return redirect_response
 
 
 # ─── 로그인 로그 ────────────────────────────────────────────────────

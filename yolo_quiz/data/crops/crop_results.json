@@ -1,7 +1,7 @@
 [
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_001_q01.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q01.webp",
     "question_no": 1,
     "bbox": [
       64.4551010131836,
@@ -10,11 +10,14 @@
       1218.558349609375
     ],
     "confidence": 0.9338938593864441,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      1
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_001_q02.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q02.webp",
     "question_no": 2,
     "bbox": [
       82.76277923583984,
@@ -23,11 +26,14 @@
       1766.8798828125
     ],
     "confidence": 0.9444069862365723,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      2
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_001_q03.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q03.webp",
     "question_no": 3,
     "bbox": [
       82.99569702148438,
@@ -36,11 +42,14 @@
       2291.17578125
     ],
     "confidence": 0.8816280364990234,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      3
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_001_q04.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q04.webp",
     "question_no": 4,
     "bbox": [
       70.5541763305664,
@@ -49,11 +58,14 @@
       2926.142333984375
     ],
     "confidence": 0.9530937671661377,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      4
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_001_q05.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q05.webp",
     "question_no": 5,
     "bbox": [
       61.28178024291992,
@@ -62,11 +74,14 @@
       4238.970703125
     ],
     "confidence": 0.9703604578971863,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      5
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_001_q06.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q06.webp",
     "question_no": 6,
     "bbox": [
       1548.786376953125,
@@ -75,11 +90,14 @@
       975.5042114257812
     ],
     "confidence": 0.9548800587654114,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      6
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_001_q07.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q07.webp",
     "question_no": 7,
     "bbox": [
       1550.85546875,
@@ -88,11 +106,14 @@
       1573.647216796875
     ],
     "confidence": 0.9372671842575073,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      7
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_001_q08.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q08.webp",
     "question_no": 8,
     "bbox": [
       1551.0899658203125,
@@ -101,11 +122,14 @@
       2133.600830078125
     ],
     "confidence": 0.8900860548019409,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      8
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_001_q09.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q09.webp",
     "question_no": 9,
     "bbox": [
       1548.2393798828125,
@@ -114,11 +138,14 @@
       2703.455322265625
     ],
     "confidence": 0.926637589931488,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      9
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_001_q10.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q10.webp",
     "question_no": 10,
     "bbox": [
       1535.5264892578125,
@@ -127,11 +154,14 @@
       3470.281494140625
     ],
     "confidence": 0.8936734795570374,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      10
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_001_q11.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q11.webp",
     "question_no": 11,
     "bbox": [
       1540.178955078125,
@@ -140,12 +170,15 @@
       4249.28759765625
     ],
     "confidence": 0.8796684145927429,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      11
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_002_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q12.webp",
+    "question_no": 12,
     "bbox": [
       62.526546478271484,
       201.3155975341797,
@@ -153,12 +186,15 @@
       968.8861083984375
     ],
     "confidence": 0.9650861620903015,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      12
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_002_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q13.webp",
+    "question_no": 13,
     "bbox": [
       51.01765441894531,
       1049.1951904296875,
@@ -166,12 +202,15 @@
       1966.3665771484375
     ],
     "confidence": 0.9616804718971252,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      13
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_002_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q14.webp",
+    "question_no": 14,
     "bbox": [
       48.77644729614258,
       2038.9962158203125,
@@ -179,12 +218,15 @@
       3159.059814453125
     ],
     "confidence": 0.9702737927436829,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      14
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_002_q04.webp",
-    "question_no": 4,
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q15.webp",
+    "question_no": 15,
     "bbox": [
       46.50815200805664,
       3219.046142578125,
@@ -192,12 +234,15 @@
       4240.162109375
     ],
     "confidence": 0.975336492061615,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      15
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_002_q05.webp",
-    "question_no": 5,
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q16.webp",
+    "question_no": 16,
     "bbox": [
       1540.30126953125,
       202.67044067382812,
@@ -205,12 +250,15 @@
       890.1213989257812
     ],
     "confidence": 0.9723409414291382,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      16
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_002_q06.webp",
-    "question_no": 6,
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q17.webp",
+    "question_no": 17,
     "bbox": [
       1535.302001953125,
       960.7378540039062,
@@ -218,12 +266,15 @@
       1937.850341796875
     ],
     "confidence": 0.9699338674545288,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      17
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_002_q07.webp",
-    "question_no": 7,
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q18.webp",
+    "question_no": 18,
     "bbox": [
       1537.112060546875,
       2017.659423828125,
@@ -231,12 +282,15 @@
       2611.425537109375
     ],
     "confidence": 0.933358371257782,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      18
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_002_q08.webp",
-    "question_no": 8,
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q19.webp",
+    "question_no": 19,
     "bbox": [
       1536.2484130859375,
       2681.040283203125,
@@ -244,12 +298,15 @@
       3181.8388671875
     ],
     "confidence": 0.7946770787239075,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      19
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+교육학개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\page_002_q09.webp",
-    "question_no": 9,
+    "crop_path": "data\\crops\\250621+지방+9급+교육학개론-B\\q20.webp",
+    "question_no": 20,
     "bbox": [
       1536.6763916015625,
       3255.638916015625,
@@ -257,11 +314,14 @@
       4234.7197265625
     ],
     "confidence": 0.9671961069107056,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      20
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_001_q01.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q01.webp",
     "question_no": 1,
     "bbox": [
       75.64857482910156,
@@ -270,11 +330,14 @@
       2422.878173828125
     ],
     "confidence": 0.9528091549873352,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      1
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_001_q02.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q02.webp",
     "question_no": 2,
     "bbox": [
       61.50685501098633,
@@ -283,11 +346,14 @@
       4211.908203125
     ],
     "confidence": 0.9648551344871521,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      2
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_001_q03.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q03.webp",
     "question_no": 3,
     "bbox": [
       1564.900390625,
@@ -296,11 +362,14 @@
       1834.8087158203125
     ],
     "confidence": 0.951105535030365,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      3
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_001_q04.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q04.webp",
     "question_no": 4,
     "bbox": [
       1561.7576904296875,
@@ -309,12 +378,15 @@
       4260.39794921875
     ],
     "confidence": 0.9748908281326294,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      4
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_002_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q05.webp",
+    "question_no": 5,
     "bbox": [
       79.11370086669922,
       209.99383544921875,
@@ -322,12 +394,15 @@
       2405.964111328125
     ],
     "confidence": 0.9612367153167725,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      5
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_002_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q06.webp",
+    "question_no": 6,
     "bbox": [
       73.54010772705078,
       2450.4755859375,
@@ -335,12 +410,15 @@
       4228.7568359375
     ],
     "confidence": 0.9719735383987427,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      6
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_002_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q07_q08.webp",
+    "question_no": 7,
     "bbox": [
       1561.2274169921875,
       182.53932189941406,
@@ -348,12 +426,16 @@
       3166.009521484375
     ],
     "confidence": 0.9096276760101318,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      7,
+      8
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_002_q04.webp",
-    "question_no": 4,
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q09.webp",
+    "question_no": 9,
     "bbox": [
       1550.2633056640625,
       3282.04345703125,
@@ -361,12 +443,15 @@
       3996.080810546875
     ],
     "confidence": 0.8125920295715332,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      9
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_003_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q10_q11.webp",
+    "question_no": 10,
     "bbox": [
       70.58428955078125,
       192.3477020263672,
@@ -374,12 +459,16 @@
       3664.604248046875
     ],
     "confidence": 0.8844805359840393,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      10,
+      11
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_003_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q12_q13.webp",
+    "question_no": 12,
     "bbox": [
       1565.2333984375,
       194.60269165039062,
@@ -387,12 +476,16 @@
       3900.15185546875
     ],
     "confidence": 0.6757653951644897,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      12,
+      13
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_004_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q14.webp",
+    "question_no": 14,
     "bbox": [
       68.37754821777344,
       207.941650390625,
@@ -400,12 +493,15 @@
       2290.040771484375
     ],
     "confidence": 0.9769613146781921,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      14
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_004_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q15.webp",
+    "question_no": 15,
     "bbox": [
       61.22575378417969,
       2354.098876953125,
@@ -413,12 +509,15 @@
       4241.03466796875
     ],
     "confidence": 0.9628868699073792,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      15
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_004_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q16.webp",
+    "question_no": 16,
     "bbox": [
       1536.77294921875,
       200.98333740234375,
@@ -426,12 +525,15 @@
       974.204833984375
     ],
     "confidence": 0.9137032628059387,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      16
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_004_q04.webp",
-    "question_no": 4,
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q17.webp",
+    "question_no": 17,
     "bbox": [
       1558.6348876953125,
       1237.6827392578125,
@@ -439,12 +541,15 @@
       3932.97021484375
     ],
     "confidence": 0.9610608220100403,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      17
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_005.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_005_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q18.webp",
+    "question_no": 18,
     "bbox": [
       52.54055404663086,
       185.953125,
@@ -452,12 +557,15 @@
       2911.301025390625
     ],
     "confidence": 0.9413745999336243,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      18
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_005.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_005_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q19.webp",
+    "question_no": 19,
     "bbox": [
       41.110374450683594,
       2938.781982421875,
@@ -465,12 +573,15 @@
       4209.06591796875
     ],
     "confidence": 0.9643879532814026,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      19
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+국어-B (2)\\page_005.png",
-    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\page_005_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+국어-B (2)\\q20.webp",
+    "question_no": 20,
     "bbox": [
       1556.5203857421875,
       177.73887634277344,
@@ -478,11 +589,14 @@
       2738.9443359375
     ],
     "confidence": 0.9470301866531372,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      20
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_001_q01.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q01.webp",
     "question_no": 1,
     "bbox": [
       64.2228012084961,
@@ -491,11 +605,14 @@
       941.9054565429688
     ],
     "confidence": 0.9364220499992371,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      1
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_001_q02.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q02.webp",
     "question_no": 2,
     "bbox": [
       69.76315307617188,
@@ -504,11 +621,14 @@
       1404.625732421875
     ],
     "confidence": 0.8050506114959717,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      2
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_001_q03.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q03.webp",
     "question_no": 3,
     "bbox": [
       72.50408935546875,
@@ -517,11 +637,14 @@
       1871.782958984375
     ],
     "confidence": 0.9498749375343323,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      3
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_001_q04.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q04.webp",
     "question_no": 4,
     "bbox": [
       71.33301544189453,
@@ -530,11 +653,14 @@
       4250.08251953125
     ],
     "confidence": 0.9784857034683228,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      4
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_001_q05.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q05.webp",
     "question_no": 5,
     "bbox": [
       1550.9967041015625,
@@ -543,11 +669,14 @@
       1447.77783203125
     ],
     "confidence": 0.9705848097801208,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      5
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_001_q06.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q06_q07.webp",
     "question_no": 6,
     "bbox": [
       1558.18798828125,
@@ -556,12 +685,16 @@
       4050.13671875
     ],
     "confidence": 0.9737334847450256,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      6,
+      7
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_002_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q08_q09.webp",
+    "question_no": 8,
     "bbox": [
       57.34775161743164,
       199.86874389648438,
@@ -569,12 +702,16 @@
       2714.033203125
     ],
     "confidence": 0.9746212363243103,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      8,
+      9
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_002_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q10.webp",
+    "question_no": 10,
     "bbox": [
       1529.1187744140625,
       202.4185028076172,
@@ -582,12 +719,15 @@
       2582.9609375
     ],
     "confidence": 0.9782233834266663,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      10
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_003_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q11.webp",
+    "question_no": 11,
     "bbox": [
       62.07879638671875,
       196.83758544921875,
@@ -595,12 +735,15 @@
       3091.822509765625
     ],
     "confidence": 0.9135759472846985,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      11
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_003_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q12.webp",
+    "question_no": 12,
     "bbox": [
       1568.604248046875,
       195.59600830078125,
@@ -608,12 +751,15 @@
       2443.867431640625
     ],
     "confidence": 0.9648954272270203,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      12
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_003_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q13.webp",
+    "question_no": 13,
     "bbox": [
       1541.003173828125,
       2490.037109375,
@@ -621,12 +767,15 @@
       3098.859619140625
     ],
     "confidence": 0.9053409695625305,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      13
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_004_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q15.webp",
+    "question_no": 15,
     "bbox": [
       52.40371322631836,
       202.52871704101562,
@@ -634,12 +783,15 @@
       1724.4705810546875
     ],
     "confidence": 0.9697493314743042,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      15
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_004_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q16.webp",
+    "question_no": 16,
     "bbox": [
       53.6346549987793,
       1761.5650634765625,
@@ -647,12 +799,15 @@
       2904.9794921875
     ],
     "confidence": 0.9740471243858337,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      16
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_004_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q17.webp",
+    "question_no": 17,
     "bbox": [
       57.4996452331543,
       2932.081787109375,
@@ -660,12 +815,15 @@
       4207.62646484375
     ],
     "confidence": 0.9668965935707092,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      17
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_004_q04.webp",
-    "question_no": 4,
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q18.webp",
+    "question_no": 18,
     "bbox": [
       1533.109619140625,
       200.21197509765625,
@@ -673,12 +831,15 @@
       1007.6954345703125
     ],
     "confidence": 0.9519079327583313,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      18
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_004_q05.webp",
-    "question_no": 5,
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q19.webp",
+    "question_no": 19,
     "bbox": [
       1527.1971435546875,
       1055.7171630859375,
@@ -686,12 +847,15 @@
       2499.748779296875
     ],
     "confidence": 0.9626191854476929,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      19
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+영어-B\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\page_004_q06.webp",
-    "question_no": 6,
+    "crop_path": "data\\crops\\250621+지방+9급+영어-B\\q20.webp",
+    "question_no": 20,
     "bbox": [
       1525.481201171875,
       2527.687744140625,
@@ -699,11 +863,14 @@
       4228.734375
     ],
     "confidence": 0.9613139033317566,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      20
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_001_q01.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q01.webp",
     "question_no": 1,
     "bbox": [
       69.52424621582031,
@@ -712,11 +879,14 @@
       1203.0806884765625
     ],
     "confidence": 0.9641357660293579,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      1
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_001_q02.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q02.webp",
     "question_no": 2,
     "bbox": [
       66.3713607788086,
@@ -725,11 +895,14 @@
       2460.85595703125
     ],
     "confidence": 0.9586641788482666,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      2
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_001_q03.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q03.webp",
     "question_no": 3,
     "bbox": [
       80.15003204345703,
@@ -738,11 +911,14 @@
       3025.9765625
     ],
     "confidence": 0.9456093311309814,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      3
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_001_q04.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q04.webp",
     "question_no": 4,
     "bbox": [
       76.47924041748047,
@@ -751,11 +927,14 @@
       3741.6591796875
     ],
     "confidence": 0.963907778263092,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      4
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_001_q05.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q05.webp",
     "question_no": 5,
     "bbox": [
       74.40985107421875,
@@ -764,11 +943,14 @@
       4249.4697265625
     ],
     "confidence": 0.968742847442627,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      5
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_001_q06.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q06.webp",
     "question_no": 6,
     "bbox": [
       1545.5047607421875,
@@ -777,11 +959,14 @@
       755.1758422851562
     ],
     "confidence": 0.9480758309364319,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      6
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_001_q07.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q07.webp",
     "question_no": 7,
     "bbox": [
       1547.547119140625,
@@ -790,11 +975,14 @@
       1683.06396484375
     ],
     "confidence": 0.9675107002258301,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      7
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_001_q08.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q08.webp",
     "question_no": 8,
     "bbox": [
       1538.6337890625,
@@ -803,11 +991,14 @@
       2592.6396484375
     ],
     "confidence": 0.9551040530204773,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      8
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_001_q09.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q09.webp",
     "question_no": 9,
     "bbox": [
       1548.889404296875,
@@ -816,11 +1007,14 @@
       3362.496826171875
     ],
     "confidence": 0.9748928546905518,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      9
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_001_q10.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q10.webp",
     "question_no": 10,
     "bbox": [
       1544.24853515625,
@@ -829,12 +1023,15 @@
       4235.5009765625
     ],
     "confidence": 0.9559476375579834,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      10
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_002_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q11.webp",
+    "question_no": 11,
     "bbox": [
       57.2604866027832,
       202.54013061523438,
@@ -842,12 +1039,15 @@
       720.299560546875
     ],
     "confidence": 0.9463275671005249,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      11
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_002_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q12.webp",
+    "question_no": 12,
     "bbox": [
       48.761905670166016,
       766.5297241210938,
@@ -855,12 +1055,15 @@
       1512.2899169921875
     ],
     "confidence": 0.9774135947227478,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      12
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_002_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q13.webp",
+    "question_no": 13,
     "bbox": [
       50.95711898803711,
       1569.9033203125,
@@ -868,12 +1071,15 @@
       2312.639892578125
     ],
     "confidence": 0.9741723537445068,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      13
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_002_q04.webp",
-    "question_no": 4,
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q14.webp",
+    "question_no": 14,
     "bbox": [
       49.89374923706055,
       2378.861328125,
@@ -881,12 +1087,15 @@
       3120.720947265625
     ],
     "confidence": 0.9713189601898193,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      14
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_002_q05.webp",
-    "question_no": 5,
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q15.webp",
+    "question_no": 15,
     "bbox": [
       46.34565734863281,
       3182.069091796875,
@@ -894,12 +1103,15 @@
       4238.21435546875
     ],
     "confidence": 0.9717649221420288,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      15
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_002_q06.webp",
-    "question_no": 6,
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q16.webp",
+    "question_no": 16,
     "bbox": [
       1537.8603515625,
       204.88099670410156,
@@ -907,12 +1119,15 @@
       1284.8099365234375
     ],
     "confidence": 0.9807893633842468,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      16
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_002_q07.webp",
-    "question_no": 7,
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q17.webp",
+    "question_no": 17,
     "bbox": [
       1548.4693603515625,
       1338.4765625,
@@ -920,12 +1135,15 @@
       1765.3544921875
     ],
     "confidence": 0.9540480971336365,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      17
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_002_q08.webp",
-    "question_no": 8,
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q18.webp",
+    "question_no": 18,
     "bbox": [
       1545.3863525390625,
       1816.2298583984375,
@@ -933,12 +1151,15 @@
       2772.675537109375
     ],
     "confidence": 0.9768983721733093,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      18
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_002_q09.webp",
-    "question_no": 9,
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q19.webp",
+    "question_no": 19,
     "bbox": [
       1540.7030029296875,
       2813.398681640625,
@@ -946,12 +1167,15 @@
       3667.756591796875
     ],
     "confidence": 0.9592189788818359,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      19
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+정보봉사개론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\page_002_q10.webp",
-    "question_no": 10,
+    "crop_path": "data\\crops\\250621+지방+9급+정보봉사개론-B\\q20.webp",
+    "question_no": 20,
     "bbox": [
       1534.6392822265625,
       3720.857421875,
@@ -959,11 +1183,14 @@
       4235.88525390625
     ],
     "confidence": 0.9432861804962158,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      20
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_001_q01.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q01.webp",
     "question_no": 1,
     "bbox": [
       69.15833282470703,
@@ -972,11 +1199,14 @@
       1612.3916015625
     ],
     "confidence": 0.9609795808792114,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      1
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_001_q02.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q02.webp",
     "question_no": 2,
     "bbox": [
       68.7795181274414,
@@ -985,11 +1215,14 @@
       2562.923095703125
     ],
     "confidence": 0.9584270715713501,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      2
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_001_q03.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q03.webp",
     "question_no": 3,
     "bbox": [
       69.37399291992188,
@@ -998,11 +1231,14 @@
       3458.642333984375
     ],
     "confidence": 0.9679663181304932,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      3
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_001_q04.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q04.webp",
     "question_no": 4,
     "bbox": [
       75.91329193115234,
@@ -1011,11 +1247,14 @@
       4256.42431640625
     ],
     "confidence": 0.9672386050224304,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      4
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_001_q05.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q05.webp",
     "question_no": 5,
     "bbox": [
       1547.9832763671875,
@@ -1024,11 +1263,14 @@
       1347.78466796875
     ],
     "confidence": 0.9729939699172974,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      5
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_001_q06.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q06.webp",
     "question_no": 6,
     "bbox": [
       1547.6929931640625,
@@ -1037,11 +1279,14 @@
       2147.384765625
     ],
     "confidence": 0.9771247506141663,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      6
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_001_q07.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q07.webp",
     "question_no": 7,
     "bbox": [
       1549.5797119140625,
@@ -1050,11 +1295,14 @@
       3185.179931640625
     ],
     "confidence": 0.9753702282905579,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      7
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_001_q08.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q08.webp",
     "question_no": 8,
     "bbox": [
       1548.8988037109375,
@@ -1063,12 +1311,15 @@
       4225.39697265625
     ],
     "confidence": 0.9686675667762756,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      8
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_002_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q09.webp",
+    "question_no": 9,
     "bbox": [
       79.44699096679688,
       201.9354705810547,
@@ -1076,12 +1327,15 @@
       706.8048706054688
     ],
     "confidence": 0.93791663646698,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      9
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_002_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q10.webp",
+    "question_no": 10,
     "bbox": [
       54.1082649230957,
       767.3836059570312,
@@ -1089,12 +1343,15 @@
       1646.994384765625
     ],
     "confidence": 0.9744145274162292,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      10
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_002_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q11.webp",
+    "question_no": 11,
     "bbox": [
       45.114768981933594,
       1717.986083984375,
@@ -1102,12 +1359,15 @@
       3091.947509765625
     ],
     "confidence": 0.961205005645752,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      11
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_002_q04.webp",
-    "question_no": 4,
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q12.webp",
+    "question_no": 12,
     "bbox": [
       45.68476104736328,
       3164.795166015625,
@@ -1115,12 +1375,15 @@
       4232.47021484375
     ],
     "confidence": 0.9531405568122864,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      12
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_002_q05.webp",
-    "question_no": 5,
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q13.webp",
+    "question_no": 13,
     "bbox": [
       1530.7056884765625,
       206.41531372070312,
@@ -1128,12 +1391,15 @@
       1360.6043701171875
     ],
     "confidence": 0.967689037322998,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      13
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_002_q06.webp",
-    "question_no": 6,
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q14.webp",
+    "question_no": 14,
     "bbox": [
       1552.785400390625,
       1420.5853271484375,
@@ -1141,12 +1407,15 @@
       2903.771728515625
     ],
     "confidence": 0.9733755588531494,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      14
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_002_q07.webp",
-    "question_no": 7,
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q15.webp",
+    "question_no": 15,
     "bbox": [
       1537.25634765625,
       2971.86328125,
@@ -1154,12 +1423,15 @@
       4233.8642578125
     ],
     "confidence": 0.9650720357894897,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      15
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_003_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q16.webp",
+    "question_no": 16,
     "bbox": [
       59.529396057128906,
       202.3535614013672,
@@ -1167,12 +1439,15 @@
       1436.97216796875
     ],
     "confidence": 0.9675910472869873,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      16
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_003_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q17.webp",
+    "question_no": 17,
     "bbox": [
       45.812896728515625,
       1502.276123046875,
@@ -1180,12 +1455,15 @@
       3003.460205078125
     ],
     "confidence": 0.9518786668777466,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      17
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_003_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q18.webp",
+    "question_no": 18,
     "bbox": [
       58.05842590332031,
       3074.284912109375,
@@ -1193,12 +1471,15 @@
       4243.76123046875
     ],
     "confidence": 0.9517998695373535,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      18
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_003_q04.webp",
-    "question_no": 4,
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q19.webp",
+    "question_no": 19,
     "bbox": [
       1544.263671875,
       205.61988830566406,
@@ -1206,12 +1487,15 @@
       1151.2318115234375
     ],
     "confidence": 0.9678525328636169,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      19
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+지방세법-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\page_003_q05.webp",
-    "question_no": 5,
+    "crop_path": "data\\crops\\250621+지방+9급+지방세법-B\\q20.webp",
+    "question_no": 20,
     "bbox": [
       1545.9652099609375,
       1223.2154541015625,
@@ -1219,11 +1503,14 @@
       2760.15380859375
     ],
     "confidence": 0.954586923122406,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      20
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_001_q01.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q01.webp",
     "question_no": 1,
     "bbox": [
       78.52506256103516,
@@ -1232,11 +1519,14 @@
       966.2116088867188
     ],
     "confidence": 0.9348511099815369,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      1
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_001_q02.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q02.webp",
     "question_no": 2,
     "bbox": [
       75.45555114746094,
@@ -1245,11 +1535,14 @@
       1680.789306640625
     ],
     "confidence": 0.9664990901947021,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      2
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_001_q03.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q03.webp",
     "question_no": 3,
     "bbox": [
       84.54845428466797,
@@ -1258,11 +1551,14 @@
       2255.654052734375
     ],
     "confidence": 0.9451638460159302,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      3
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_001_q04.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q04.webp",
     "question_no": 4,
     "bbox": [
       75.34232330322266,
@@ -1271,11 +1567,14 @@
       2964.060546875
     ],
     "confidence": 0.9551342725753784,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      4
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_001_q05.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q05.webp",
     "question_no": 5,
     "bbox": [
       82.73860931396484,
@@ -1284,11 +1583,14 @@
       3502.284912109375
     ],
     "confidence": 0.9526740908622742,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      5
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_001_q06.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q06.webp",
     "question_no": 6,
     "bbox": [
       80.67926025390625,
@@ -1297,11 +1599,14 @@
       4214.525390625
     ],
     "confidence": 0.9738483428955078,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      6
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_001_q07.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q07.webp",
     "question_no": 7,
     "bbox": [
       1550.2593994140625,
@@ -1310,11 +1615,14 @@
       1025.72509765625
     ],
     "confidence": 0.9385184049606323,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      7
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_001_q08.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q08.webp",
     "question_no": 8,
     "bbox": [
       1550.907470703125,
@@ -1323,11 +1631,14 @@
       1876.260498046875
     ],
     "confidence": 0.9597267508506775,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      8
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_001_q09.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q09.webp",
     "question_no": 9,
     "bbox": [
       1552.6343994140625,
@@ -1336,11 +1647,14 @@
       2658.952880859375
     ],
     "confidence": 0.965710461139679,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      9
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_001_q10.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q10.webp",
     "question_no": 10,
     "bbox": [
       1525.9052734375,
@@ -1349,11 +1663,14 @@
       3363.6318359375
     ],
     "confidence": 0.9719036221504211,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      10
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_001_q11.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q11.webp",
     "question_no": 11,
     "bbox": [
       1534.3447265625,
@@ -1362,12 +1679,15 @@
       4221.6845703125
     ],
     "confidence": 0.965090274810791,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      11
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_002_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q12.webp",
+    "question_no": 12,
     "bbox": [
       54.032623291015625,
       197.31887817382812,
@@ -1375,12 +1695,15 @@
       1085.07373046875
     ],
     "confidence": 0.968220055103302,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      12
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_002_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q13.webp",
+    "question_no": 13,
     "bbox": [
       57.9952278137207,
       1152.603515625,
@@ -1388,12 +1711,15 @@
       2192.9921875
     ],
     "confidence": 0.9706190228462219,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      13
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_002_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q14.webp",
+    "question_no": 14,
     "bbox": [
       51.646080017089844,
       2255.95361328125,
@@ -1401,12 +1727,15 @@
       3363.541748046875
     ],
     "confidence": 0.9688170552253723,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      14
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_002_q04.webp",
-    "question_no": 4,
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q15.webp",
+    "question_no": 15,
     "bbox": [
       53.761966705322266,
       3421.724365234375,
@@ -1414,12 +1743,15 @@
       4233.58544921875
     ],
     "confidence": 0.9745157361030579,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      15
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_002_q05.webp",
-    "question_no": 5,
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q16.webp",
+    "question_no": 16,
     "bbox": [
       1539.6640625,
       199.7320098876953,
@@ -1427,12 +1759,15 @@
       649.4777221679688
     ],
     "confidence": 0.951962411403656,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      16
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_002_q06.webp",
-    "question_no": 6,
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q17.webp",
+    "question_no": 17,
     "bbox": [
       1531.049560546875,
       695.2596435546875,
@@ -1440,12 +1775,15 @@
       1453.242431640625
     ],
     "confidence": 0.9761834740638733,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      17
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_002_q07.webp",
-    "question_no": 7,
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q18.webp",
+    "question_no": 18,
     "bbox": [
       1533.201904296875,
       1501.197021484375,
@@ -1453,12 +1791,15 @@
       2474.935791015625
     ],
     "confidence": 0.9649452567100525,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      18
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_002_q08.webp",
-    "question_no": 8,
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q19.webp",
+    "question_no": 19,
     "bbox": [
       1534.2635498046875,
       2516.5458984375,
@@ -1466,12 +1807,15 @@
       3352.856201171875
     ],
     "confidence": 0.9687771201133728,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      19
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+한국사-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\page_002_q09.webp",
-    "question_no": 9,
+    "crop_path": "data\\crops\\250621+지방+9급+한국사-B\\q20.webp",
+    "question_no": 20,
     "bbox": [
       1532.3780517578125,
       3399.83349609375,
@@ -1479,11 +1823,14 @@
       4225.88427734375
     ],
     "confidence": 0.9597100019454956,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      20
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_001_q01.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q01.webp",
     "question_no": 1,
     "bbox": [
       76.00142669677734,
@@ -1492,11 +1839,14 @@
       1700.498046875
     ],
     "confidence": 0.9638214111328125,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      1
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_001_q02.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q02.webp",
     "question_no": 2,
     "bbox": [
       73.21337890625,
@@ -1505,11 +1855,14 @@
       2968.286376953125
     ],
     "confidence": 0.9560953974723816,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      2
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_001_q03.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q03.webp",
     "question_no": 3,
     "bbox": [
       65.61833190917969,
@@ -1518,11 +1871,14 @@
       4221.21826171875
     ],
     "confidence": 0.9612590670585632,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      3
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_001_q04.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q04.webp",
     "question_no": 4,
     "bbox": [
       1586.7606201171875,
@@ -1531,11 +1887,14 @@
       2058.892822265625
     ],
     "confidence": 0.88933265209198,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      4
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_001_q05.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q05.webp",
     "question_no": 5,
     "bbox": [
       1553.6114501953125,
@@ -1544,11 +1903,14 @@
       3094.882568359375
     ],
     "confidence": 0.9644021391868591,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      5
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_001_q06.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q06.webp",
     "question_no": 6,
     "bbox": [
       1562.5433349609375,
@@ -1557,12 +1919,15 @@
       4229.32666015625
     ],
     "confidence": 0.9674582481384277,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      6
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_002_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q07.webp",
+    "question_no": 7,
     "bbox": [
       69.65699005126953,
       201.5071258544922,
@@ -1570,12 +1935,15 @@
       1667.8831787109375
     ],
     "confidence": 0.9670482873916626,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      7
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_002_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q08.webp",
+    "question_no": 8,
     "bbox": [
       71.60136413574219,
       1737.4962158203125,
@@ -1583,12 +1951,15 @@
       3289.377197265625
     ],
     "confidence": 0.8969629406929016,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      8
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_002_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q09.webp",
+    "question_no": 9,
     "bbox": [
       68.3945541381836,
       3356.73681640625,
@@ -1596,12 +1967,15 @@
       4229.40283203125
     ],
     "confidence": 0.9471641778945923,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      9
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_002_q04.webp",
-    "question_no": 4,
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q10.webp",
+    "question_no": 10,
     "bbox": [
       1547.7030029296875,
       207.01736450195312,
@@ -1609,12 +1983,15 @@
       1424.3046875
     ],
     "confidence": 0.9737262725830078,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      10
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_002_q05.webp",
-    "question_no": 5,
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q11.webp",
+    "question_no": 11,
     "bbox": [
       1541.7677001953125,
       1499.6822509765625,
@@ -1622,12 +1999,15 @@
       2553.927978515625
     ],
     "confidence": 0.9675192832946777,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      11
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_002_q06.webp",
-    "question_no": 6,
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q12.webp",
+    "question_no": 12,
     "bbox": [
       1552.44580078125,
       2618.3056640625,
@@ -1635,12 +2015,15 @@
       4224.845703125
     ],
     "confidence": 0.9673915505409241,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      12
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_003_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q13.webp",
+    "question_no": 13,
     "bbox": [
       60.12724685668945,
       201.42929077148438,
@@ -1648,12 +2031,15 @@
       1665.842041015625
     ],
     "confidence": 0.9650214314460754,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      13
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_003_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q14.webp",
+    "question_no": 14,
     "bbox": [
       39.3292121887207,
       1719.22802734375,
@@ -1661,12 +2047,15 @@
       3025.43896484375
     ],
     "confidence": 0.9703180193901062,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      14
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_003_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q15.webp",
+    "question_no": 15,
     "bbox": [
       42.56828689575195,
       3089.482666015625,
@@ -1674,12 +2063,15 @@
       4225.0810546875
     ],
     "confidence": 0.9610840678215027,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      15
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_003_q04.webp",
-    "question_no": 4,
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q16.webp",
+    "question_no": 16,
     "bbox": [
       1568.1082763671875,
       204.212158203125,
@@ -1687,12 +2079,15 @@
       1824.0821533203125
     ],
     "confidence": 0.9709751605987549,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      16
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_003_q05.webp",
-    "question_no": 5,
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q17.webp",
+    "question_no": 17,
     "bbox": [
       1559.3023681640625,
       1851.3946533203125,
@@ -1700,12 +2095,15 @@
       4264.052734375
     ],
     "confidence": 0.9750849604606628,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      17
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_004_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q18.webp",
+    "question_no": 18,
     "bbox": [
       59.19221496582031,
       204.92872619628906,
@@ -1713,12 +2111,15 @@
       1091.371826171875
     ],
     "confidence": 0.9578160047531128,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      18
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_004_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q19.webp",
+    "question_no": 19,
     "bbox": [
       45.841163635253906,
       1176.318115234375,
@@ -1726,12 +2127,15 @@
       2273.06005859375
     ],
     "confidence": 0.9644197821617126,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      19
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정법총론-B\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\page_004_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+행정법총론-B\\q20.webp",
+    "question_no": 20,
     "bbox": [
       44.10045623779297,
       2344.47705078125,
@@ -1739,11 +2143,14 @@
       4143.6728515625
     ],
     "confidence": 0.9391619563102722,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      20
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001_q01.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q01.webp",
     "question_no": 1,
     "bbox": [
       70.51786804199219,
@@ -1752,11 +2159,14 @@
       1301.16259765625
     ],
     "confidence": 0.9728127121925354,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      1
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001_q02.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q02.webp",
     "question_no": 2,
     "bbox": [
       77.30928802490234,
@@ -1765,11 +2175,14 @@
       1907.3914794921875
     ],
     "confidence": 0.9408344626426697,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      2
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001_q03.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q03.webp",
     "question_no": 3,
     "bbox": [
       69.67870330810547,
@@ -1778,11 +2191,14 @@
       2760.26123046875
     ],
     "confidence": 0.9581941962242126,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      3
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001_q04.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q04.webp",
     "question_no": 4,
     "bbox": [
       82.8452377319336,
@@ -1791,11 +2207,14 @@
       3369.400146484375
     ],
     "confidence": 0.9669479727745056,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      4
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001_q05.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q05.webp",
     "question_no": 5,
     "bbox": [
       77.14167022705078,
@@ -1804,11 +2223,14 @@
       4234.46728515625
     ],
     "confidence": 0.9598563313484192,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      5
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001_q06.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q06.webp",
     "question_no": 6,
     "bbox": [
       1550.0679931640625,
@@ -1817,11 +2239,14 @@
       830.2430419921875
     ],
     "confidence": 0.9706911444664001,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      6
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001_q07.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q07.webp",
     "question_no": 7,
     "bbox": [
       1548.7022705078125,
@@ -1830,11 +2255,14 @@
       1573.783447265625
     ],
     "confidence": 0.968799352645874,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      7
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001_q08.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q08.webp",
     "question_no": 8,
     "bbox": [
       1549.8238525390625,
@@ -1843,11 +2271,14 @@
       2447.10498046875
     ],
     "confidence": 0.9797877669334412,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      8
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001_q09.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q09.webp",
     "question_no": 9,
     "bbox": [
       1549.203125,
@@ -1856,11 +2287,14 @@
       3340.830322265625
     ],
     "confidence": 0.9682011604309082,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      9
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_001_q10.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q10.webp",
     "question_no": 10,
     "bbox": [
       1533.540771484375,
@@ -1869,12 +2303,15 @@
       4233.12109375
     ],
     "confidence": 0.9610021710395813,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      10
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q11.webp",
+    "question_no": 11,
     "bbox": [
       57.82361602783203,
       198.82984924316406,
@@ -1882,12 +2319,15 @@
       915.322998046875
     ],
     "confidence": 0.9700045585632324,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      11
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q12.webp",
+    "question_no": 12,
     "bbox": [
       46.34601593017578,
       965.0839233398438,
@@ -1895,12 +2335,15 @@
       1873.6136474609375
     ],
     "confidence": 0.9775428771972656,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      12
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q13.webp",
+    "question_no": 13,
     "bbox": [
       49.41757583618164,
       1937.0032958984375,
@@ -1908,12 +2351,15 @@
       2684.7685546875
     ],
     "confidence": 0.9662404656410217,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      13
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002_q04.webp",
-    "question_no": 4,
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q14.webp",
+    "question_no": 14,
     "bbox": [
       49.96211624145508,
       2736.74853515625,
@@ -1921,12 +2367,15 @@
       3487.889892578125
     ],
     "confidence": 0.9758294820785522,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      14
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002_q05.webp",
-    "question_no": 5,
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q15.webp",
+    "question_no": 15,
     "bbox": [
       45.13136291503906,
       3542.795166015625,
@@ -1934,12 +2383,15 @@
       4233.97802734375
     ],
     "confidence": 0.9534746408462524,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      15
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002_q06.webp",
-    "question_no": 6,
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q16.webp",
+    "question_no": 16,
     "bbox": [
       1537.8974609375,
       203.40139770507812,
@@ -1947,12 +2399,15 @@
       743.6301879882812
     ],
     "confidence": 0.9273034930229187,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      16
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002_q07.webp",
-    "question_no": 7,
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q17.webp",
+    "question_no": 17,
     "bbox": [
       1539.92529296875,
       787.2560424804688,
@@ -1960,12 +2415,15 @@
       1343.1160888671875
     ],
     "confidence": 0.9560433030128479,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      17
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002_q08.webp",
-    "question_no": 8,
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q18.webp",
+    "question_no": 18,
     "bbox": [
       1544.5704345703125,
       1393.1768798828125,
@@ -1973,12 +2431,15 @@
       2262.193603515625
     ],
     "confidence": 0.9794919490814209,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      18
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002_q09.webp",
-    "question_no": 9,
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q19.webp",
+    "question_no": 19,
     "bbox": [
       1539.956787109375,
       2337.00341796875,
@@ -1986,12 +2447,15 @@
       3118.404052734375
     ],
     "confidence": 0.9717651605606079,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      19
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\page_002_q10.webp",
-    "question_no": 10,
+    "crop_path": "data\\crops\\250621+지방+9급+행정학개론(지방행정+포함)-B\\q20.webp",
+    "question_no": 20,
     "bbox": [
       1544.068359375,
       3188.049072265625,
@@ -1999,11 +2463,14 @@
       4135.01708984375
     ],
     "confidence": 0.9626893401145935,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      20
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_001_q01.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q01.webp",
     "question_no": 1,
     "bbox": [
       68.95635223388672,
@@ -2012,11 +2479,14 @@
       1500.099365234375
     ],
     "confidence": 0.8472603559494019,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      1
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_001_q02.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q02.webp",
     "question_no": 2,
     "bbox": [
       69.75690460205078,
@@ -2025,11 +2495,14 @@
       3476.3974609375
     ],
     "confidence": 0.9398087859153748,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      2
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_001_q03.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q03.webp",
     "question_no": 3,
     "bbox": [
       1557.1339111328125,
@@ -2038,11 +2511,14 @@
       699.7813110351562
     ],
     "confidence": 0.8435465097427368,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      3
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_001_q04.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q04.webp",
     "question_no": 4,
     "bbox": [
       1546.6947021484375,
@@ -2051,11 +2527,14 @@
       2173.9990234375
     ],
     "confidence": 0.9496929049491882,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      4
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_001.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_001_q05.webp",
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q05.webp",
     "question_no": 5,
     "bbox": [
       1555.1966552734375,
@@ -2064,12 +2543,15 @@
       3622.147705078125
     ],
     "confidence": 0.9582796096801758,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      5
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_002_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q06.webp",
+    "question_no": 6,
     "bbox": [
       77.47352600097656,
       204.0993194580078,
@@ -2077,12 +2559,15 @@
       997.9265747070312
     ],
     "confidence": 0.9625911116600037,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      6
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_002_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q07.webp",
+    "question_no": 7,
     "bbox": [
       67.77519226074219,
       1365.0482177734375,
@@ -2090,12 +2575,15 @@
       2257.036865234375
     ],
     "confidence": 0.9649234414100647,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      7
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_002_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q08.webp",
+    "question_no": 8,
     "bbox": [
       53.451622009277344,
       2693.069580078125,
@@ -2103,12 +2591,15 @@
       3874.335205078125
     ],
     "confidence": 0.9653945565223694,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      8
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_002_q04.webp",
-    "question_no": 4,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q09.webp",
+    "question_no": 9,
     "bbox": [
       1553.6942138671875,
       202.93185424804688,
@@ -2116,12 +2607,15 @@
       967.2396850585938
     ],
     "confidence": 0.9662476181983948,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      9
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_002_q05.webp",
-    "question_no": 5,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q10.webp",
+    "question_no": 10,
     "bbox": [
       1547.3438720703125,
       1363.42578125,
@@ -2129,12 +2623,15 @@
       1978.970947265625
     ],
     "confidence": 0.9511444568634033,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      10
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_002.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_002_q06.webp",
-    "question_no": 6,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q11.webp",
+    "question_no": 11,
     "bbox": [
       1543.9810791015625,
       2683.593017578125,
@@ -2142,12 +2639,15 @@
       3592.003662109375
     ],
     "confidence": 0.9817668795585632,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      11
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_003_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q12.webp",
+    "question_no": 12,
     "bbox": [
       49.813907623291016,
       201.94212341308594,
@@ -2155,12 +2655,15 @@
       778.4627685546875
     ],
     "confidence": 0.9529262781143188,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      12
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_003_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q13.webp",
+    "question_no": 13,
     "bbox": [
       53.60029220581055,
       1442.874267578125,
@@ -2168,12 +2671,15 @@
       2025.119384765625
     ],
     "confidence": 0.901242733001709,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      13
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_003_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q14.webp",
+    "question_no": 14,
     "bbox": [
       48.46446228027344,
       2699.728271484375,
@@ -2181,12 +2687,15 @@
       3414.73046875
     ],
     "confidence": 0.9345521330833435,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      14
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_003_q04.webp",
-    "question_no": 4,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q15.webp",
+    "question_no": 15,
     "bbox": [
       1538.389404296875,
       204.23049926757812,
@@ -2194,12 +2703,15 @@
       1162.1142578125
     ],
     "confidence": 0.960106611251831,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      15
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_003_q05.webp",
-    "question_no": 5,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q16.webp",
+    "question_no": 16,
     "bbox": [
       1534.32470703125,
       1451.3271484375,
@@ -2207,12 +2719,15 @@
       2559.4033203125
     ],
     "confidence": 0.976839005947113,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      16
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_003.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_003_q06.webp",
-    "question_no": 6,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q17.webp",
+    "question_no": 17,
     "bbox": [
       1538.49609375,
       2691.46337890625,
@@ -2220,12 +2735,15 @@
       3793.380615234375
     ],
     "confidence": 0.9482600688934326,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      17
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_004_q01.webp",
-    "question_no": 1,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q18.webp",
+    "question_no": 18,
     "bbox": [
       58.76146697998047,
       204.31375122070312,
@@ -2233,12 +2751,15 @@
       928.4443969726562
     ],
     "confidence": 0.9683493375778198,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      18
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_004_q02.webp",
-    "question_no": 2,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q19.webp",
+    "question_no": 19,
     "bbox": [
       46.58466339111328,
       1289.4202880859375,
@@ -2246,12 +2767,15 @@
       2537.3349609375
     ],
     "confidence": 0.9708812236785889,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      19
+    ]
   },
   {
     "source_image": "data\\images\\250621+지방+9급+회계학-B\\page_004.png",
-    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\page_004_q03.webp",
-    "question_no": 3,
+    "crop_path": "data\\crops\\250621+지방+9급+회계학-B\\q20.webp",
+    "question_no": 20,
     "bbox": [
       44.436309814453125,
       2897.59375,
@@ -2259,6 +2783,9 @@
       3759.745361328125
     ],
     "confidence": 0.9644142389297485,
-    "class_name": "question"
+    "class_name": "question",
+    "question_nos": [
+      20
+    ]
   }
 ]

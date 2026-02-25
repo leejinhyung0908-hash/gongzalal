@@ -328,38 +328,79 @@ class MegagongStoryCrawler:
         return story_data
 
     def _parse_subject_methods(self, text: str, subjects: List[str]) -> Dict[str, str]:
-        """과목별 학습법 텍스트를 과목별로 분리"""
+        """과목별 학습법 텍스트를 ■ 마커 기반으로 과목별 분리
+
+        기존 버그 수정:
+        - find()로 과목명 검색 시 본문 내 과목명도 매칭되어 내용 잘림
+        - "형법, 형사소송법" 같은 합쳐진 과목 헤더 미처리
+        수정:
+        - ■ 마커를 기준으로 섹션을 먼저 분리
+        - 각 섹션 헤더에서 과목명 매칭
+        - 합쳐진 헤더는 각 과목 키에 동일 내용 할당
+        """
         result = {}
         if not text or not subjects:
             return result
 
-        remaining_text = text
-        for subject in subjects:
-            if subject in remaining_text:
-                idx = remaining_text.find(subject)
-                if idx >= 0:
-                    subject_part = remaining_text[idx:]
+        # ■ 마커가 있으면 마커 기반 분리
+        if "■" in text:
+            parts = text.split("■")
+            for part in parts:
+                part = part.strip()
+                if not part:
+                    continue
 
-                    # 다음 과목명이나 섹션 끝까지 찾기
-                    next_subject_idx = len(subject_part)
-                    for other_subject in subjects:
-                        if other_subject != subject:
-                            other_idx = subject_part.find(other_subject, len(subject))
-                            if other_idx > 0 and other_idx < next_subject_idx:
-                                next_subject_idx = other_idx
+                # 첫 줄에서 과목명 헤더 추출
+                first_line_end = part.find("\n")
+                if first_line_end < 0:
+                    header = part
+                else:
+                    header = part[:first_line_end].strip()
 
-                    # 섹션 종료 키워드 확인
-                    stop_keywords = ["면접", "수험생활중", "어려웠던 점", "합격에 도움이 된", "KEY POINT"]
-                    for keyword in stop_keywords:
-                        keyword_idx = subject_part.find(keyword, len(subject))
-                        if keyword_idx > 0 and keyword_idx < next_subject_idx:
-                            next_subject_idx = keyword_idx
+                # 헤더에서 과목명 매칭
+                matched_subjects = [s for s in subjects if s in header]
 
-                    subject_text = subject_part[:next_subject_idx].strip()
-                    if subject_text:
-                        result[subject] = subject_text
+                if matched_subjects:
+                    full_content = part.strip()
+                    # 합쳐진 헤더 (예: "형법, 형사소송법") → 각 과목에 동일 내용
+                    for subj in matched_subjects:
+                        result[subj] = full_content
+                    if len(matched_subjects) > 1:
+                        combined_key = ", ".join(matched_subjects)
+                        result[combined_key] = full_content
+                elif part.strip():
+                    # 과목명 없는 파트: 시작이 과목명인지 확인
+                    for subj in subjects:
+                        if part.startswith(subj):
+                            result[subj] = part.strip()
+                            break
+        else:
+            # ■ 마커 없는 경우: 줄 시작 기반 분리
+            lines = text.split("\n")
+            current_subject = None
+            current_content = []
 
-                    remaining_text = remaining_text[idx + next_subject_idx:]
+            for line in lines:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+
+                matched_subj = None
+                for subj in subjects:
+                    if stripped.startswith(subj):
+                        matched_subj = subj
+                        break
+
+                if matched_subj:
+                    if current_subject and current_content:
+                        result[current_subject] = "\n".join(current_content).strip()
+                    current_subject = matched_subj
+                    current_content = [stripped]
+                elif current_subject:
+                    current_content.append(stripped)
+
+            if current_subject and current_content:
+                result[current_subject] = "\n".join(current_content).strip()
 
         if not result:
             result["전체"] = text
