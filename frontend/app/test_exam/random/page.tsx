@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useUser } from "@/lib/hooks/useUser";
 
@@ -115,7 +115,7 @@ function classifyAnswer(selected: number | null, answerKey: string | null): "cor
     return String(selected) === String(answerKey) ? "correct" : "wrong";
 }
 
-export default function RandomExamPage() {
+function RandomExamPageContent() {
     // ── 로그인 사용자 ──
     const { user: loggedInUser } = useUser();
     const searchParams = useSearchParams();
@@ -2162,5 +2162,13 @@ export default function RandomExamPage() {
                 }
             `}</style>
         </div>
+    );
+}
+
+export default function RandomExamPage() {
+    return (
+        <Suspense fallback={<div style={{ padding: 24, color: "#fff" }}>로딩 중...</div>}>
+            <RandomExamPageContent />
+        </Suspense>
     );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { logout, API_BASE_URL, authFetch, startSocialLink, storeLinkedProviders } from "@/lib/auth-api";
 import { useUser, LinkedAccount } from "@/lib/hooks/useUser";
@@ -55,7 +55,7 @@ type UserProfile = {
 // 메인 컴포넌트
 // ============================================================================
 
-export default function UserProfilePage() {
+function UserProfilePageContent() {
     const { user: loggedInUser, loading: userLoading } = useUser();
 
     // 프로필 데이터
@@ -1068,6 +1068,14 @@ export default function UserProfilePage() {
                 }
             `}</style>
         </div>
+    );
+}
+
+export default function UserProfilePage() {
+    return (
+        <Suspense fallback={<div style={{ padding: 24, color: "#fff" }}>로딩 중...</div>}>
+            <UserProfilePageContent />
+        </Suspense>
     );
 }
 
