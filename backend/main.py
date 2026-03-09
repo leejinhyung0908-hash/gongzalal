@@ -65,35 +65,45 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"[FastAPI] LLM 모델 레지스트리 등록 실패 (계속 진행): {e}")
 
+        # preload 토글 (기본값: 비활성화)
+        preload_exaone = os.getenv("PRELOAD_EXAONE", "false").lower() == "true"
+        preload_kure = os.getenv("PRELOAD_KURE", "false").lower() == "true"
+
         # ── EXAONE 모델 사전 로드 (싱글톤) ──
         # 서버 시작 시 1회 로드하여 ModelLoader 캐시에 저장.
         # 이후 get_llm() 호출 시 캐시된 인스턴스를 재사용하므로 중복 로드 방지.
-        try:
-            from backend.dependencies import get_llm
-            logger.info("[FastAPI] EXAONE 모델 사전 로드 시작...")
-            print("[FastAPI] EXAONE 모델 사전 로드 시작...", flush=True)
-            _global_llm = get_llm()
-            if not _global_llm.is_loaded():
-                _global_llm.load()
-            logger.info("[FastAPI] EXAONE 모델 사전 로드 완료 ✅")
-            print("[FastAPI] EXAONE 모델 사전 로드 완료 ✅", flush=True)
-        except Exception as e:
-            logger.warning(f"[FastAPI] EXAONE 사전 로드 실패 (요청 시 lazy 로드): {e}")
-            print(f"[FastAPI] EXAONE 사전 로드 실패 (요청 시 lazy 로드): {e}", flush=True)
+        if preload_exaone:
+            try:
+                from backend.dependencies import get_llm
+                logger.info("[FastAPI] EXAONE 모델 사전 로드 시작...")
+                print("[FastAPI] EXAONE 모델 사전 로드 시작...", flush=True)
+                _global_llm = get_llm()
+                if not _global_llm.is_loaded():
+                    _global_llm.load()
+                logger.info("[FastAPI] EXAONE 모델 사전 로드 완료 ✅")
+                print("[FastAPI] EXAONE 모델 사전 로드 완료 ✅", flush=True)
+            except Exception as e:
+                logger.warning(f"[FastAPI] EXAONE 사전 로드 실패 (요청 시 lazy 로드): {e}")
+                print(f"[FastAPI] EXAONE 사전 로드 실패 (요청 시 lazy 로드): {e}", flush=True)
+        else:
+            logger.info("[FastAPI] EXAONE 사전 로드 비활성화 (lazy 로드)")
 
         # ── KURE-v1 임베딩 모델 사전 로드 (싱글톤) ──
         # 서버 시작 시 1회 로드하여 모듈 전역 _model에 캐시.
         # 이후 generate_embedding() 호출 시 로드 지연 없이 즉시 사용.
-        try:
-            from backend.core.utils.embedding import preload_model as preload_kure
-            logger.info("[FastAPI] KURE-v1 임베딩 모델 사전 로드 시작...")
-            print("[FastAPI] KURE-v1 임베딩 모델 사전 로드 시작...", flush=True)
-            preload_kure()
-            logger.info("[FastAPI] KURE-v1 임베딩 모델 사전 로드 완료 ✅")
-            print("[FastAPI] KURE-v1 임베딩 모델 사전 로드 완료 ✅", flush=True)
-        except Exception as e:
-            logger.warning(f"[FastAPI] KURE-v1 사전 로드 실패 (요청 시 lazy 로드): {e}")
-            print(f"[FastAPI] KURE-v1 사전 로드 실패 (요청 시 lazy 로드): {e}", flush=True)
+        if preload_kure:
+            try:
+                from backend.core.utils.embedding import preload_model as preload_kure_model
+                logger.info("[FastAPI] KURE-v1 임베딩 모델 사전 로드 시작...")
+                print("[FastAPI] KURE-v1 임베딩 모델 사전 로드 시작...", flush=True)
+                preload_kure_model()
+                logger.info("[FastAPI] KURE-v1 임베딩 모델 사전 로드 완료 ✅")
+                print("[FastAPI] KURE-v1 임베딩 모델 사전 로드 완료 ✅", flush=True)
+            except Exception as e:
+                logger.warning(f"[FastAPI] KURE-v1 사전 로드 실패 (요청 시 lazy 로드): {e}")
+                print(f"[FastAPI] KURE-v1 사전 로드 실패 (요청 시 lazy 로드): {e}", flush=True)
+        else:
+            logger.info("[FastAPI] KURE-v1 사전 로드 비활성화 (lazy 로드)")
 
         # 중앙 MCP 서버 초기화 (EXAONE은 위에서 로드한 싱글톤을 공유)
         try:
