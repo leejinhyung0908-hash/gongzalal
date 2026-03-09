@@ -809,7 +809,7 @@ def generate_mentoring_answer_with_exaone(
     logger.info("[MentoringRAG] EXAONE에 답변 생성 요청 중...")
     answer = llm.generate(
         prompt,
-        max_new_tokens=1024,
+        max_new_tokens=128,
         temperature=0.7,
         top_p=0.9,
     )
