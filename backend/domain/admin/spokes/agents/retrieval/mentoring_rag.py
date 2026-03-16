@@ -13,7 +13,9 @@ EXAONE LLM을 통해 답변을 생성합니다.
 
 import json
 import logging
+import os
 import re
+import time
 from typing import Dict, Any, List, Optional
 
 import psycopg
@@ -22,6 +24,7 @@ from backend.core.utils.embedding import generate_embedding
 from backend.core.llm.base import BaseLLM
 
 logger = logging.getLogger(__name__)
+_MENTORING_GENERATION_MAX_TIME_SEC = float(os.getenv("MENTORING_GENERATION_MAX_TIME_SEC", "20"))
 
 
 _STORY_NOISE_MARKERS: List[str] = [
@@ -810,13 +813,23 @@ def generate_mentoring_answer_with_exaone(
     )
 
     logger.info("[MentoringRAG] EXAONE에 답변 생성 요청 중...")
+    started_at = time.time()
     answer = llm.generate(
         prompt,
         max_new_tokens=96,
-        temperature=0.7,
-        top_p=0.9,
+        max_time=_MENTORING_GENERATION_MAX_TIME_SEC,
     )
-    logger.info("[MentoringRAG] EXAONE 답변 생성 완료")
+    elapsed = time.time() - started_at
+
+    # max_time에 걸리거나 모델 이상으로 의미 있는 답변이 생성되지 않으면 즉시 폴백
+    if not answer or answer.strip() in ("응답을 생성하지 못했습니다.",):
+        logger.warning(
+            "[MentoringRAG] EXAONE 응답 비어있음/부실 - raw 폴백 "
+            f"(elapsed={elapsed:.1f}s)"
+        )
+        return generate_mentoring_answer_raw(question, results)
+
+    logger.info(f"[MentoringRAG] EXAONE 답변 생성 완료 ({elapsed:.1f}s)")
     return answer
 
 

@@ -193,6 +193,7 @@ class ExaoneLLM(BaseLLM):
             # EXAONE 모델용 프롬프트 포맷
             # EXAONE은 instruction format을 사용
             formatted_prompt = f"[INST] {prompt} [/INST]"
+            max_time = kwargs.pop("max_time", None)
 
             # 생성
             # 속도 우선을 위해 샘플링을 비활성화하고 greedy decoding을 사용합니다.
@@ -200,6 +201,7 @@ class ExaoneLLM(BaseLLM):
                 formatted_prompt,
                 max_new_tokens=max_new_tokens,
                 do_sample=False,
+                max_time=max_time,
                 return_full_text=False,  # 프롬프트 제외하고 생성된 텍스트만
                 **kwargs,
             )
