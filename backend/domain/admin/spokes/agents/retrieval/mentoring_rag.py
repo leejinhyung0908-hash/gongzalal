@@ -16,15 +16,20 @@ import logging
 import os
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from typing import Dict, Any, List, Optional
 
 import psycopg
+import torch
 
 from backend.core.utils.embedding import generate_embedding
 from backend.core.llm.base import BaseLLM
 
 logger = logging.getLogger(__name__)
 _MENTORING_GENERATION_MAX_TIME_SEC = float(os.getenv("MENTORING_GENERATION_MAX_TIME_SEC", "20"))
+_MENTORING_EXAONE_CALL_TIMEOUT_SEC = float(os.getenv("MENTORING_EXAONE_CALL_TIMEOUT_SEC", "45"))
+_MENTORING_MAX_NEW_TOKENS_CPU = int(os.getenv("MENTORING_MAX_NEW_TOKENS_CPU", "24"))
+_MENTORING_MAX_NEW_TOKENS_GPU = int(os.getenv("MENTORING_MAX_NEW_TOKENS_GPU", "96"))
 
 
 _STORY_NOISE_MARKERS: List[str] = [
@@ -814,11 +819,31 @@ def generate_mentoring_answer_with_exaone(
 
     logger.info("[MentoringRAG] EXAONE에 답변 생성 요청 중...")
     started_at = time.time()
-    answer = llm.generate(
-        prompt,
-        max_new_tokens=96,
-        max_time=_MENTORING_GENERATION_MAX_TIME_SEC,
+    max_new_tokens = (
+        _MENTORING_MAX_NEW_TOKENS_GPU if torch.cuda.is_available() else _MENTORING_MAX_NEW_TOKENS_CPU
     )
+
+    def _run_generate() -> str:
+        return llm.generate(
+            prompt,
+            max_new_tokens=max_new_tokens,
+            max_time=_MENTORING_GENERATION_MAX_TIME_SEC,
+        )
+
+    try:
+        # max_time가 라이브러리 버전에 따라 완전히 보장되지 않을 수 있어
+        # Future timeout으로 상한을 한 번 더 강제한다.
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_run_generate)
+            answer = future.result(timeout=_MENTORING_EXAONE_CALL_TIMEOUT_SEC)
+    except FutureTimeoutError:
+        elapsed = time.time() - started_at
+        logger.warning(
+            "[MentoringRAG] EXAONE 생성 타임아웃 - raw 폴백 "
+            f"(timeout={_MENTORING_EXAONE_CALL_TIMEOUT_SEC}s, elapsed={elapsed:.1f}s)"
+        )
+        return generate_mentoring_answer_raw(question, results)
+
     elapsed = time.time() - started_at
 
     # max_time에 걸리거나 모델 이상으로 의미 있는 답변이 생성되지 않으면 즉시 폴백
@@ -884,8 +909,12 @@ async def process_mentoring_rag(
                     chat_history=chat_history,
                     context_summary=context_summary,
                 )
-                generation_method = "exaone"
-                logger.info("[MentoringRAG] EXAONE으로 답변 생성 완료")
+                if answer and answer.strip().startswith("📋 관련 합격 수기:"):
+                    generation_method = "raw_fallback"
+                    logger.info("[MentoringRAG] EXAONE 타임아웃/부실 응답으로 raw 폴백 완료")
+                else:
+                    generation_method = "exaone"
+                    logger.info("[MentoringRAG] EXAONE으로 답변 생성 완료")
             except Exception as e:
                 logger.warning(
                     f"[MentoringRAG] EXAONE 생성 실패, raw 모드로 폴백: {e}"
