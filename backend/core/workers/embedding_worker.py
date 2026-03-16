@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import time
 from typing import Optional, Dict, Any
 
@@ -34,6 +35,8 @@ QUEUE_NAME = "embedding_queue"
 COMMENTARY_QUEUE_NAME = "commentary_embedding_queue"
 BATCH_SIZE = 100  # 한 번에 처리할 문항 수
 POLL_INTERVAL = 2  # 큐 폴링 간격 (초) - 더 빠른 처리
+IDLE_TIMEOUT_SECONDS = int(os.getenv("EMBEDDING_WORKER_IDLE_TIMEOUT_SECONDS", "60"))
+IDLE_MAX_EMPTY_POLLS = max(1, IDLE_TIMEOUT_SECONDS // POLL_INTERVAL)
 
 
 async def process_embedding_batch(
@@ -303,6 +306,7 @@ async def embedding_worker_loop():
     logger.info("[EmbeddingWorker] 워커 시작")
     print("[EmbeddingWorker] 워커 시작", flush=True)
     _worker_running = True
+    empty_polls = 0
 
     while _worker_running:
         try:
@@ -396,7 +400,21 @@ async def embedding_worker_loop():
 
             if not job_found:
                 # 작업이 없으면 대기
+                empty_polls += 1
+                if empty_polls >= IDLE_MAX_EMPTY_POLLS:
+                    logger.info(
+                        f"[EmbeddingWorker] 유휴 상태 {IDLE_TIMEOUT_SECONDS}초 경과 - 워커 자동 종료"
+                    )
+                    print(
+                        f"[EmbeddingWorker] 유휴 상태 {IDLE_TIMEOUT_SECONDS}초 경과 - 워커 자동 종료",
+                        flush=True,
+                    )
+                    _worker_running = False
+                    break
                 await asyncio.sleep(POLL_INTERVAL)
+            else:
+                # 작업을 처리했으면 유휴 카운터 초기화
+                empty_polls = 0
 
         except KeyboardInterrupt:
             logger.info("[EmbeddingWorker] 워커 중지 요청")

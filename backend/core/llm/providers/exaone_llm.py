@@ -195,13 +195,11 @@ class ExaoneLLM(BaseLLM):
             formatted_prompt = f"[INST] {prompt} [/INST]"
 
             # 생성
+            # 속도 우선을 위해 샘플링을 비활성화하고 greedy decoding을 사용합니다.
             outputs = self._pipeline(
                 formatted_prompt,
                 max_new_tokens=max_new_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-                do_sample=True,
+                do_sample=False,
                 return_full_text=False,  # 프롬프트 제외하고 생성된 텍스트만
                 **kwargs,
             )

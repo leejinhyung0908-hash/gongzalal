@@ -796,7 +796,10 @@ def generate_mentoring_answer_with_exaone(
     context_summary: str = "",
 ) -> str:
     """EXAONE LLM을 사용하여 멘토링 RAG 답변을 생성합니다."""
-    context = build_mentoring_context(results, include_details=True)
+    # CPU 환경 응답 지연을 줄이기 위해 컨텍스트를 축약합니다.
+    context = build_mentoring_context(results, max_results=3, include_details=False)
+    if len(context) > 3000:
+        context = context[:3000] + "..."
     if not context:
         return generate_mentoring_answer_raw(question, results)
 
@@ -809,7 +812,7 @@ def generate_mentoring_answer_with_exaone(
     logger.info("[MentoringRAG] EXAONE에 답변 생성 요청 중...")
     answer = llm.generate(
         prompt,
-        max_new_tokens=128,
+        max_new_tokens=96,
         temperature=0.7,
         top_p=0.9,
     )

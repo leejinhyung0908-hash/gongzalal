@@ -116,12 +116,11 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"[FastAPI] 중앙 MCP 서버 초기화 실패 (계속 진행): {e}")
 
-        # Redis 및 임베딩 워커 초기화
-        logger.info("[FastAPI] Redis 및 워커 초기화 시작...")
-        print("[FastAPI] Redis 및 워커 초기화 시작...", flush=True)
+        # Redis 초기화 (임베딩 워커는 작업 enqueue 시 on-demand 시작)
+        logger.info("[FastAPI] Redis 초기화 시작...")
+        print("[FastAPI] Redis 초기화 시작...", flush=True)
         try:
             from backend.api.v1.shared.redis import setup_redis, init_redis
-            from backend.core.workers.embedding_worker import start_embedding_worker
 
             # Redis 연결 설정
             logger.info("[FastAPI] Redis 연결 시도 중...")
@@ -131,19 +130,7 @@ async def lifespan(app: FastAPI):
                 if redis_result:
                     logger.info("[FastAPI] Redis 연결 완료")
                     print("[FastAPI] Redis 연결 완료", flush=True)
-
-                    # 임베딩 워커 시작 (백그라운드 태스크)
-                    logger.info("[FastAPI] 워커 시작 시도 중...")
-                    print("[FastAPI] 워커 시작 시도 중...", flush=True)
-                    try:
-                        worker_task = start_embedding_worker()
-                        logger.info("[FastAPI] 임베딩 워커 시작 완료")
-                        print("[FastAPI] 임베딩 워커 시작 완료", flush=True)
-                    except Exception as worker_error:
-                        logger.error(f"[FastAPI] 워커 시작 실패 (계속 진행): {worker_error}")
-                        print(f"[FastAPI] 워커 시작 실패: {worker_error}", flush=True)
-                        import traceback
-                        traceback.print_exc()
+                    logger.info("[FastAPI] 임베딩 워커는 enqueue 시 자동 시작됩니다.")
                 else:
                     logger.warning("[FastAPI] Redis 연결 실패 (임베딩 워커 미시작)")
                     print("[FastAPI] Redis 연결 실패 (임베딩 워커 미시작)", flush=True)

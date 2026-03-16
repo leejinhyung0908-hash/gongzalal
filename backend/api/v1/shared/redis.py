@@ -6,6 +6,7 @@ BullMQ와 통신할 수 있도록 설정합니다.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from typing import Optional, Dict, Any
@@ -88,6 +89,31 @@ JWT_USER_PREFIX = "jwt:user:"
 # BullMQ 관련 Redis 키 패턴
 BULLMQ_QUEUE_PREFIX = "bull:"
 BULLMQ_JOB_PREFIX = "bullmq:job:"
+EMBEDDING_QUEUES = {"embedding_queue", "commentary_embedding_queue"}
+
+
+def _ensure_embedding_worker_running(queue_name: str) -> None:
+    """임베딩 큐 작업이 enqueue되면 워커를 on-demand로 시작한다."""
+    if queue_name not in EMBEDDING_QUEUES:
+        return
+
+    # 실행 중 이벤트 루프가 없는 컨텍스트에서는 워커 시작을 건너뛴다.
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        logger.debug("[Redis] 이벤트 루프 없음 - 워커 자동 시작 건너뜀")
+        return
+
+    try:
+        # 순환 참조를 피하기 위해 지연 import
+        from backend.core.workers.embedding_worker import is_worker_running, start_embedding_worker
+
+        if not is_worker_running():
+            start_embedding_worker()
+            logger.info(f"[Redis] 임베딩 워커 on-demand 시작: queue={queue_name}")
+    except Exception as e:
+        # enqueue 자체는 성공했으므로 warning으로만 남긴다.
+        logger.warning(f"[Redis] 워커 on-demand 시작 실패 (queue={queue_name}): {e}")
 
 
 def store_jwt_token(user_id: str, access_token: str, expires_in: int = 1800) -> bool:
@@ -301,6 +327,7 @@ def enqueue_bullmq_job(
         # 큐에 작업 추가 (BullMQ 형식)
         queue_key = f"{BULLMQ_QUEUE_PREFIX}{queue_name}:wait"
         redis_client.lpush(queue_key, job_id)
+        _ensure_embedding_worker_running(queue_name)
 
         logger.info(f"[Redis] BullMQ 작업 추가: queue={queue_name}, job_id={job_id}")
         return job_id
