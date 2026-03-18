@@ -128,21 +128,109 @@ const IcSend = () => (
 
 /* ─── 사이드바 아이템 컴포넌트 ─── */
 function SideItem({
-    icon, label, expanded, onClick, href, danger = false, tooltip,
+    icon, label, expanded, onClick, href, danger = false,
 }: {
     icon: React.ReactNode; label: string; expanded: boolean;
-    onClick?: () => void; href?: string; danger?: boolean; tooltip?: string;
+    onClick?: () => void; href?: string; danger?: boolean;
 }) {
-    const cls = `side-item${danger ? " side-item-danger" : ""}`;
+    const [hovered, setHovered] = useState(false);
+
+    const baseStyle: React.CSSProperties = {
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: "nowrap",
+        alignItems: "center",
+        gap: "10px",
+        width: "100%",
+        padding: expanded ? "8px 12px" : "8px 0",
+        justifyContent: expanded ? "flex-start" : "center",
+        border: "none",
+        borderRadius: "8px",
+        background: hovered
+            ? danger ? "rgba(255,80,80,0.07)" : "rgba(255,255,255,0.06)"
+            : "transparent",
+        color: danger
+            ? hovered ? "rgba(255,100,100,0.9)" : "rgba(255,100,100,0.5)"
+            : hovered ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.45)",
+        fontSize: "0.83rem",
+        fontFamily: "inherit",
+        letterSpacing: "0.02em",
+        textAlign: "left",
+        textDecoration: "none",
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        flexShrink: 0,
+        transition: "background 0.15s ease, color 0.15s ease",
+        boxSizing: "border-box",
+        position: "relative",
+    };
+
+    const iconStyle: React.CSSProperties = {
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "18px",
+        height: "18px",
+    };
+
+    const labelStyle: React.CSSProperties = {
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+        flex: 1,
+        minWidth: 0,
+    };
+
     const content = (
         <>
-            <span className="side-item-icon">{icon}</span>
-            {expanded && <span className="side-item-label">{label}</span>}
-            {!expanded && <span className="side-tooltip">{tooltip ?? label}</span>}
+            <span style={iconStyle}>{icon}</span>
+            {expanded && <span style={labelStyle}>{label}</span>}
+            {!expanded && hovered && (
+                <span style={{
+                    position: "absolute",
+                    left: "calc(100% + 10px)",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "rgba(20,20,20,0.98)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "rgba(255,255,255,0.85)",
+                    fontSize: "0.73rem",
+                    padding: "5px 10px",
+                    borderRadius: "6px",
+                    whiteSpace: "nowrap",
+                    zIndex: 400,
+                    pointerEvents: "none",
+                }}>
+                    {label}
+                </span>
+            )}
         </>
     );
-    if (href) return <a href={href} className={cls} title={!expanded ? label : undefined}>{content}</a>;
-    return <button className={cls} onClick={onClick} title={!expanded ? label : undefined}>{content}</button>;
+
+    if (href) {
+        return (
+            <a
+                href={href}
+                style={baseStyle}
+                onMouseEnter={() => setHovered(true)}
+                onMouseLeave={() => setHovered(false)}
+            >
+                {content}
+            </a>
+        );
+    }
+    return (
+        <button
+            style={baseStyle}
+            onClick={onClick}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+        >
+            {content}
+        </button>
+    );
 }
 
 /* ════════════════════════════════════════
@@ -262,10 +350,15 @@ export default function ChatbotUI() {
             </div>
 
             {/* 새 대화 버튼 */}
-            <button className={`side-new-chat ${showExpanded ? "" : "side-new-chat-icon"}`} onClick={handleNewChat}>
-                <IcPencil />
-                {showExpanded && <span>새 대화</span>}
-                {!showExpanded && <span className="side-tooltip">새 대화</span>}
+            <button
+                className={`side-new-chat ${showExpanded ? "" : "side-new-chat-icon"}`}
+                onClick={handleNewChat}
+                title={!showExpanded ? "새 대화" : undefined}
+            >
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, width: 16, height: 16 }}>
+                    <IcPencil />
+                </span>
+                {showExpanded && <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>새 대화</span>}
             </button>
 
             {/* 상단 내비 */}
@@ -424,6 +517,7 @@ export default function ChatbotUI() {
                 /* ── 전체 레이아웃 ── */
                 .layout {
                     display: flex;
+                    flex-direction: row;
                     height: 100vh;
                     width: 100vw;
                     background: #000;
@@ -436,86 +530,102 @@ export default function ChatbotUI() {
                 .sidebar {
                     width: 260px;
                     min-width: 260px;
+                    max-width: 260px;
                     height: 100vh;
-                    background: #0a0a0a;
-                    border-right: 1px solid rgba(255,255,255,0.05);
+                    background: #0d0d0d;
+                    border-right: 1px solid rgba(255,255,255,0.06);
                     display: flex;
                     flex-direction: column;
-                    padding: 12px 8px;
+                    padding: 10px 10px 16px;
                     overflow: hidden;
-                    transition: width 0.25s ease, min-width 0.25s ease;
+                    transition: width 0.22s ease, min-width 0.22s ease, max-width 0.22s ease;
                     flex-shrink: 0;
+                    box-sizing: border-box;
                 }
                 .sidebar-collapsed {
-                    width: 64px;
-                    min-width: 64px;
+                    width: 60px;
+                    min-width: 60px;
+                    max-width: 60px;
+                    padding: 10px 6px 16px;
                 }
                 .sidebar-mobile {
                     position: fixed;
                     left: 0; top: 0; bottom: 0;
                     z-index: 200;
-                    width: 260px !important;
-                    min-width: 260px !important;
-                    box-shadow: 4px 0 24px rgba(0,0,0,0.6);
+                    width: 260px;
+                    min-width: 260px;
+                    max-width: 260px;
+                    box-shadow: 8px 0 32px rgba(0,0,0,0.7);
                 }
 
-                /* 사이드바 상단 */
+                /* 상단 영역 */
                 .side-top {
                     display: flex;
+                    flex-direction: row;
+                    flex-wrap: nowrap;
                     align-items: center;
-                    gap: 10px;
-                    padding: 4px 4px 8px;
-                    margin-bottom: 4px;
+                    gap: 8px;
+                    padding: 2px 4px 10px;
+                    margin-bottom: 2px;
+                    flex-shrink: 0;
                 }
                 .side-toggle {
                     flex-shrink: 0;
-                    width: 36px; height: 36px;
+                    width: 34px; height: 34px;
                     display: flex; align-items: center; justify-content: center;
                     border: none; border-radius: 8px;
                     background: transparent;
-                    color: rgba(255,255,255,0.35);
+                    color: rgba(255,255,255,0.3);
                     cursor: pointer;
-                    transition: color 0.2s, background 0.2s;
+                    transition: color 0.18s, background 0.18s;
                 }
                 .side-toggle:hover {
-                    color: rgba(255,255,255,0.8);
+                    color: rgba(255,255,255,0.75);
                     background: rgba(255,255,255,0.06);
                 }
                 .side-logo {
-                    font-size: 1.05rem; font-weight: 900;
-                    color: rgba(255,255,255,0.85);
+                    font-size: 1rem; font-weight: 900;
+                    color: rgba(255,255,255,0.82);
                     text-decoration: none;
-                    letter-spacing: 0.05em;
+                    letter-spacing: 0.06em;
                     white-space: nowrap;
                     overflow: hidden;
+                    flex-shrink: 1;
+                    min-width: 0;
                 }
 
                 /* 새 대화 버튼 */
                 .side-new-chat {
-                    display: flex; align-items: center; gap: 10px;
+                    display: flex;
+                    flex-direction: row;
+                    flex-wrap: nowrap;
+                    align-items: center;
+                    gap: 9px;
                     width: 100%;
-                    padding: 9px 10px;
+                    padding: 8px 12px;
                     border: 1px solid rgba(255,255,255,0.08);
-                    border-radius: 10px;
+                    border-radius: 9px;
                     background: transparent;
-                    color: rgba(255,255,255,0.55);
+                    color: rgba(255,255,255,0.5);
                     font-size: 0.82rem; font-family: inherit;
-                    letter-spacing: 0.06em;
+                    letter-spacing: 0.04em;
                     cursor: pointer;
-                    transition: all 0.2s ease;
-                    position: relative;
-                    margin-bottom: 16px;
+                    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+                    margin-bottom: 14px;
                     white-space: nowrap;
                     overflow: hidden;
+                    box-sizing: border-box;
+                    flex-shrink: 0;
                 }
                 .side-new-chat:hover {
                     background: rgba(255,255,255,0.05);
-                    color: rgba(255,255,255,0.9);
-                    border-color: rgba(255,255,255,0.14);
+                    color: rgba(255,255,255,0.88);
+                    border-color: rgba(255,255,255,0.13);
                 }
                 .side-new-chat-icon {
                     justify-content: center;
-                    padding: 9px;
+                    padding: 8px;
+                    gap: 0;
                 }
 
                 /* 내비 */
@@ -523,85 +633,24 @@ export default function ChatbotUI() {
                     flex: 1;
                     display: flex;
                     flex-direction: column;
-                    gap: 2px;
+                    gap: 1px;
                     overflow-y: auto;
                     overflow-x: hidden;
                 }
                 .side-nav::-webkit-scrollbar { width: 2px; }
-                .side-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); }
-
-                /* 사이드 아이템 */
-                :global(.side-item) {
-                    display: flex !important;
-                    align-items: center !important;
-                    gap: 10px !important;
-                    width: 100% !important;
-                    padding: 9px 10px !important;
-                    border: none !important;
-                    border-radius: 8px !important;
-                    background: transparent !important;
-                    color: rgba(255,255,255,0.42) !important;
-                    font-size: 0.83rem !important;
-                    font-family: inherit !important;
-                    letter-spacing: 0.03em !important;
-                    text-align: left !important;
-                    text-decoration: none !important;
-                    cursor: pointer !important;
-                    transition: all 0.18s ease !important;
-                    position: relative !important;
-                    white-space: nowrap !important;
-                    overflow: hidden !important;
-                }
-                :global(.side-item:hover) {
-                    color: rgba(255,255,255,0.88) !important;
-                    background: rgba(255,255,255,0.05) !important;
-                }
-                :global(.side-item-danger) {
-                    color: rgba(255,100,100,0.5) !important;
-                }
-                :global(.side-item-danger:hover) {
-                    color: rgba(255,100,100,0.9) !important;
-                    background: rgba(255,100,100,0.06) !important;
-                }
-                :global(.side-item-icon) {
-                    flex-shrink: 0 !important;
-                    display: flex !important;
-                    align-items: center !important;
-                }
-                :global(.side-item-label) {
-                    overflow: hidden !important;
-                    text-overflow: ellipsis !important;
-                }
-                /* 툴팁 (접힌 상태) */
-                :global(.side-tooltip) {
-                    position: absolute !important;
-                    left: calc(100% + 10px) !important;
-                    top: 50% !important;
-                    transform: translateY(-50%) !important;
-                    background: rgba(30,30,30,0.98) !important;
-                    border: 1px solid rgba(255,255,255,0.1) !important;
-                    color: rgba(255,255,255,0.85) !important;
-                    font-size: 0.75rem !important;
-                    padding: 5px 10px !important;
-                    border-radius: 6px !important;
-                    white-space: nowrap !important;
-                    pointer-events: none !important;
-                    opacity: 0 !important;
-                    transition: opacity 0.15s ease !important;
-                    z-index: 300 !important;
-                }
-                :global(.side-item:hover .side-tooltip) { opacity: 1 !important; }
-                :global(.side-new-chat:hover .side-tooltip) { opacity: 1 !important; }
+                .side-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); }
 
                 /* 사이드바 하단 */
                 .side-bottom {
-                    display: flex; flex-direction: column; gap: 2px;
-                    padding-top: 4px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1px;
+                    flex-shrink: 0;
                 }
                 .side-divider {
                     height: 1px;
-                    background: rgba(255,255,255,0.05);
-                    margin: 6px 4px 8px;
+                    background: rgba(255,255,255,0.06);
+                    margin: 8px 4px 10px;
                 }
 
                 /* ── 메인 영역 ── */
