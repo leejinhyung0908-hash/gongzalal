@@ -415,54 +415,40 @@ function RandomExamPageContent() {
         finalQuestionTimes: number[],
     ) => {
         if (logsSaved || savingLogs || images.length === 0) return;
-
-        // 풀이 로그 공통 계산 (로그인/게스트 모두 사용)
-        const expandedLogs = images.flatMap((img, idx) => {
-            const mapped = getMappedQuestions(img);
-            const baseTime = finalQuestionTimes[idx] ?? 0;
-            const perQuestionTime = Math.max(0, Math.round(baseTime / Math.max(mapped.length, 1)));
-            return mapped.map((q) => {
-                const selected = getSelectedAnswer(q.question_id);
-                const status = classifyAnswer(selected, q.answer_key);
-                return {
-                    question_id: q.question_id,
-                    subject: img.subject || "",
-                    selected_answer: selected != null ? String(selected) : null,
-                    answer_key: q.answer_key,
-                    time_spent: perQuestionTime,
-                    is_correct: status === "correct",
-                    is_wrong_note: status === "wrong",
-                };
-            });
-        });
-        const logByQuestionId = new Map<number, typeof expandedLogs[0]>();
-        expandedLogs.forEach((log) => logByQuestionId.set(log.question_id, log));
-        const logs = Array.from(logByQuestionId.values());
-
-        // 게스트(비로그인): sessionStorage에 임시 저장
-        if (!loggedInUser?.id) {
-            try {
-                sessionStorage.setItem("gja_guest_solving_logs", JSON.stringify({
-                    logs,
-                    saved_at: new Date().toISOString(),
-                }));
-                console.log("[SolvingLogs] 게스트 모드 - sessionStorage에 임시 저장");
-            } catch { /* 무시 */ }
-            setLogsSaved(true);
-            return;
-        }
-
         setSavingLogs(true);
         try {
-            // DB 저장용 로그 (subject, answer_key, is_correct 제외)
-            const dbLogs = logs.map(({ question_id, selected_answer, time_spent, is_wrong_note }) => ({
-                question_id, selected_answer, time_spent, is_wrong_note,
-            }));
+            const expandedLogs = images.flatMap((img, idx) => {
+                const mapped = getMappedQuestions(img);
+                const baseTime = finalQuestionTimes[idx] ?? 0;
+                const perQuestionTime = Math.max(0, Math.round(baseTime / Math.max(mapped.length, 1)));
+                return mapped.map((q) => {
+                    const selected = getSelectedAnswer(q.question_id);
+                    const status = classifyAnswer(selected, q.answer_key);
+                    return {
+                        question_id: q.question_id,
+                        selected_answer: selected != null ? String(selected) : null,
+                        time_spent: perQuestionTime,
+                        is_wrong_note: status === "wrong",
+                    };
+                });
+            });
+
+            // 동일 question_id 중복 저장 방지 (마지막 값 우선)
+            const logByQuestionId = new Map<number, {
+                question_id: number;
+                selected_answer: string | null;
+                time_spent: number;
+                is_wrong_note: boolean;
+            }>();
+            expandedLogs.forEach((log) => {
+                logByQuestionId.set(log.question_id, log);
+            });
+            const logs = Array.from(logByQuestionId.values());
 
             const res = await fetch(`${backendUrl}/api/v1/admin/solving-logs/batch`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: loggedInUser.id, logs: dbLogs }),
+                body: JSON.stringify({ user_id: loggedInUser?.id ?? 1, logs }),
             });
 
             if (res.ok) {
@@ -477,7 +463,7 @@ function RandomExamPageContent() {
         } finally {
             setSavingLogs(false);
         }
-    }, [images, selectedAnswersByQuestionId, backendUrl, logsSaved, savingLogs, loggedInUser?.id]);
+    }, [images, selectedAnswersByQuestionId, backendUrl, logsSaved, savingLogs]);
 
     // ── 다시 시작 ──
     const restart = () => {
@@ -1041,18 +1027,15 @@ function RandomExamPageContent() {
 
                             {/* 풀이 기록 저장 상태 */}
                             <div className="save-status" style={{ textAlign: "center", margin: "12px 0 4px" }}>
-                                {!loggedInUser?.id ? (
-                                    <span style={{ color: "rgba(251,191,36,0.7)", fontSize: "0.82rem" }}>
-                                        👤 게스트 모드 — 풀이 기록이 저장되지 않습니다.{" "}
-                                        <a href="/login" style={{ color: "rgba(251,191,36,0.95)", textDecoration: "underline" }}>로그인하기</a>
-                                    </span>
-                                ) : savingLogs ? (
+                                {savingLogs && (
                                     <span style={{ color: "#a0a0a0", fontSize: "0.85rem" }}>풀이 기록 저장 중...</span>
-                                ) : logsSaved ? (
+                                )}
+                                {logsSaved && (
                                     <span style={{ color: "#22c55e", fontSize: "0.85rem" }}>✅ 풀이 기록이 저장되었습니다</span>
-                                ) : isFinished ? (
+                                )}
+                                {!savingLogs && !logsSaved && isFinished && (
                                     <span style={{ color: "#ef4444", fontSize: "0.85rem" }}>⚠️ 풀이 기록 저장 실패 — <button onClick={() => saveSolvingLogs(questionTimes)} style={{ color: "#3b82f6", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", fontSize: "0.85rem" }}>다시 시도</button></span>
-                                ) : null}
+                                )}
                             </div>
 
                             <p className="review-hint">문제를 클릭하면 다시 확인할 수 있습니다</p>

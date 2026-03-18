@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { logout } from "@/lib/auth-api";
-import { useUser } from "@/lib/hooks/useUser";
 import {
     Dialog,
     DialogContent,
@@ -73,10 +72,6 @@ function loadThreadIdFromStorage(): string {
 }
 
 export default function ChatbotUI() {
-    const { user, loading: userLoading } = useUser();
-    // user가 null이고 auth 체크가 완료됐으면 게스트
-    const isGuest = !userLoading && !user;
-
     const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -86,30 +81,16 @@ export default function ChatbotUI() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     // 멀티턴 대화 세션 ID (sessionStorage에서 복원)
     const threadIdRef = useRef<string>("");
-    // auth 체크 완료 여부 (중복 실행 방지)
-    const authCheckedRef = useRef(false);
 
-    // ── auth 체크 완료 후 이력 복원 ──
+    // ── 마운트 시 sessionStorage에서 이력 복원 ──
     useEffect(() => {
-        if (userLoading) return;
-        if (authCheckedRef.current) return;
-        authCheckedRef.current = true;
+        const restored = loadMessagesFromStorage();
+        setMessages(restored);
+        threadIdRef.current = loadThreadIdFromStorage();
+    }, []);
 
-        if (!isGuest) {
-            // 로그인 사용자: sessionStorage에서 이력 복원
-            const restored = loadMessagesFromStorage();
-            setMessages(restored);
-            threadIdRef.current = loadThreadIdFromStorage();
-        } else {
-            // 게스트: 항상 새 세션으로 시작 (이력 미저장)
-            setMessages([WELCOME_MESSAGE]);
-            threadIdRef.current = generateSessionId();
-        }
-    }, [userLoading, isGuest]);
-
-    // ── messages 변경 시 sessionStorage에 저장 (로그인 사용자만) ──
+    // ── messages 변경 시 sessionStorage에 저장 ──
     useEffect(() => {
-        if (isGuest || userLoading) return; // 게스트는 저장 안 함
         // 초기 환영 메시지만 있는 경우 저장 불필요
         if (messages.length <= 1 && messages[0]?.text === WELCOME_MESSAGE.text) {
             return;
@@ -117,7 +98,7 @@ export default function ChatbotUI() {
         try {
             sessionStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(messages));
         } catch { /* 용량 초과 등 무시 */ }
-    }, [messages, isGuest, userLoading]);
+    }, [messages]);
 
     const handleLogout = () => {
         setIsMenuOpen(false);
@@ -215,15 +196,6 @@ export default function ChatbotUI() {
                     </button>
                 </div>
             </header>
-
-            {/* ── 게스트 모드 안내 배너 ── */}
-            {isGuest && (
-                <div className="guest-banner">
-                    <span className="guest-banner-icon">👤</span>
-                    <span className="guest-banner-text">게스트 모드 — 대화 이력이 저장되지 않습니다.</span>
-                    <a href="/login" className="guest-banner-login">로그인하기 →</a>
-                </div>
-            )}
 
             {/* ── 메시지 영역 ── */}
             <main className="chat-messages">
@@ -414,29 +386,6 @@ export default function ChatbotUI() {
                     top: 0;
                     z-index: 10;
                 }
-
-                .guest-banner {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 9px 20px;
-                    background: rgba(251, 191, 36, 0.06);
-                    border-bottom: 1px solid rgba(251, 191, 36, 0.12);
-                    font-size: 0.78rem;
-                }
-                .guest-banner-icon { font-size: 0.9rem; }
-                .guest-banner-text {
-                    color: rgba(251, 191, 36, 0.75);
-                    flex: 1;
-                }
-                .guest-banner-login {
-                    color: rgba(251, 191, 36, 0.9);
-                    text-decoration: none;
-                    font-weight: 600;
-                    font-size: 0.75rem;
-                    transition: color 0.2s;
-                }
-                .guest-banner-login:hover { color: rgba(251, 191, 36, 1); }
 
                 .header-logo {
                     display: flex;

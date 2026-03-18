@@ -12,20 +12,6 @@ type GenerateRequest = {
     question?: string;
 };
 
-type GenerateGuestRequest = {
-    question?: string;
-    guest_profile?: Record<string, unknown>;
-    guest_logs?: Array<{
-        question_id: number;
-        subject: string;
-        selected_answer: string | null;
-        answer_key: string | null;
-        time_spent: number;
-        is_correct: boolean;
-        is_wrong_note: boolean;
-    }>;
-};
-
 type AnalyzeRequest = {
     user_id: number;
 };
@@ -101,34 +87,6 @@ export async function POST(request: Request) {
                 const errorText = await response.text();
                 return Response.json(
                     { error: "학습 계획 생성 실패", details: errorText },
-                    { status: response.status }
-                );
-            }
-
-            return Response.json(await response.json());
-        }
-
-        if (action === "generate_guest") {
-            // 게스트 AI 학습 계획 생성 (프로필+로그 직접 전달, DB 미저장)
-            const { question, guest_profile, guest_logs } = body as GenerateGuestRequest & { action: string };
-            const response = await fetch(
-                `${backendUrl}/api/v1/admin/study-plans/generate-guest`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        question: question || "내 풀이 데이터를 분석해서 학습 계획을 세워줘",
-                        guest_profile: guest_profile || {},
-                        guest_logs: guest_logs || [],
-                    }),
-                    signal: AbortSignal.timeout(300000),
-                }
-            );
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                return Response.json(
-                    { error: "게스트 학습 계획 생성 실패", details: errorText },
                     { status: response.status }
                 );
             }

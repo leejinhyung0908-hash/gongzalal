@@ -1202,30 +1202,20 @@ async def logout(request: Request, response: Response):
 
 
 @router.get("/api/auth/logout")
-async def logout_redirect(request: Request, next: Optional[str] = None):
-    """로그아웃 (리다이렉트): 쿠키 삭제 후 지정 경로(기본: /login)로 302 리다이렉트.
+async def logout_redirect(request: Request):
+    """로그아웃 (리다이렉트): 쿠키 삭제 후 프론트엔드 로그인 페이지로 302 리다이렉트.
 
     로그인 시 쿠키가 302 리다이렉트 응답으로 설정되므로,
     로그아웃도 동일하게 리다이렉트 응답으로 삭제해야
     크로스오리진 환경에서 브라우저가 확실하게 쿠키를 제거합니다.
-
-    Args:
-        next: 로그아웃 후 리다이렉트할 경로 (예: /chat). 기본값: /login.
-              보안상 외부 URL은 무시하고 /로 시작하는 내부 경로만 허용합니다.
     """
     _perform_logout(request)
 
     frontend_url = _get_frontend_callback_url()
-    # 보안: next가 /로 시작하는 내부 경로인 경우만 허용
-    if next and next.startswith("/") and not next.startswith("//"):
-        redirect_path = next
-    else:
-        redirect_path = "/login"
-
-    redirect_response = RedirectResponse(url=f"{frontend_url}{redirect_path}", status_code=302)
+    redirect_response = RedirectResponse(url=f"{frontend_url}/login", status_code=302)
     _clear_auth_cookies(redirect_response)
 
-    logger.info(f"[Auth] 로그아웃 리다이렉트 → {frontend_url}{redirect_path}")
+    logger.info(f"[Auth] 로그아웃 리다이렉트 → {frontend_url}/login")
     return redirect_response
 
 
