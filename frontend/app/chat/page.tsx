@@ -140,9 +140,9 @@ function SideItem({
         flexDirection: "row",
         flexWrap: "nowrap",
         alignItems: "center",
-        gap: "12px",
+        gap: "14px",
         width: "100%",
-        padding: expanded ? "10px 14px" : "10px 0",
+        padding: expanded ? "12px 16px" : "12px 0",
         justifyContent: expanded ? "flex-start" : "center",
         border: "none",
         borderRadius: "8px",
@@ -152,10 +152,10 @@ function SideItem({
         color: danger
             ? hovered ? "rgba(255,100,100,0.9)" : "rgba(255,100,100,0.5)"
             : hovered ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.45)",
-        fontSize: "0.93rem",
+        fontSize: "1.03rem",
         fontFamily: "inherit",
         letterSpacing: "0.02em",
-        lineHeight: 1.25,
+        lineHeight: 1.3,
         textAlign: "left",
         textDecoration: "none",
         cursor: "pointer",
@@ -173,8 +173,8 @@ function SideItem({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        width: "20px",
-        height: "20px",
+        width: "22px",
+        height: "22px",
     };
 
     const labelStyle: React.CSSProperties = {
@@ -200,8 +200,8 @@ function SideItem({
                     background: "rgba(20,20,20,0.98)",
                     border: "1px solid rgba(255,255,255,0.1)",
                     color: "rgba(255,255,255,0.85)",
-                    fontSize: "0.73rem",
-                    padding: "5px 10px",
+                    fontSize: "0.8rem",
+                    padding: "6px 12px",
                     borderRadius: "6px",
                     whiteSpace: "nowrap",
                     zIndex: 400,
@@ -366,15 +366,15 @@ export default function ChatbotUI() {
                     flexWrap: "nowrap",
                     alignItems: "center",
                     justifyContent: showExpanded ? "flex-start" : "center",
-                    gap: showExpanded ? "12px" : 0,
+                    gap: showExpanded ? "14px" : 0,
                     width: "100%",
-                    padding: showExpanded ? "11px 14px" : "10px",
+                    padding: showExpanded ? "13px 16px" : "12px",
                     border: "1px solid",
                     borderColor: isNewChatHover ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.08)",
                     borderRadius: "9px",
                     background: isNewChatHover ? "rgba(255,255,255,0.05)" : "transparent",
                     color: isNewChatHover ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.5)",
-                    fontSize: "0.92rem",
+                    fontSize: "1.04rem",
                     fontFamily: "inherit",
                     letterSpacing: "0.01em",
                     lineHeight: 1.2,
@@ -389,7 +389,7 @@ export default function ChatbotUI() {
                     flexShrink: 0,
                 }}
             >
-                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, width: 18, height: 18 }}>
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, width: 20, height: 20 }}>
                     <IcPencil />
                 </span>
                 {showExpanded && (
@@ -566,9 +566,9 @@ export default function ChatbotUI() {
 
                 /* ── 사이드바 ── */
                 .sidebar {
-                    width: 332px;
-                    min-width: 332px;
-                    max-width: 332px;
+                    width: 356px;
+                    min-width: 356px;
+                    max-width: 356px;
                     height: 100vh;
                     background: #0d0d0d;
                     border-right: 1px solid rgba(255,255,255,0.06);
@@ -590,9 +590,9 @@ export default function ChatbotUI() {
                     position: fixed;
                     left: 0; top: 0; bottom: 0;
                     z-index: 200;
-                    width: min(88vw, 332px);
+                    width: min(90vw, 356px);
                     min-width: 0;
-                    max-width: 332px;
+                    max-width: 356px;
                     box-shadow: 8px 0 32px rgba(0,0,0,0.7);
                 }
 
@@ -602,14 +602,14 @@ export default function ChatbotUI() {
                     flex-direction: row;
                     flex-wrap: nowrap;
                     align-items: center;
-                    gap: 10px;
-                    padding: 4px 4px 12px;
+                    gap: 12px;
+                    padding: 6px 4px 14px;
                     margin-bottom: 4px;
                     flex-shrink: 0;
                 }
                 .side-toggle {
                     flex-shrink: 0;
-                    width: 38px; height: 38px;
+                    width: 44px; height: 44px;
                     display: flex; align-items: center; justify-content: center;
                     border: none; border-radius: 8px;
                     background: transparent;
@@ -622,10 +622,12 @@ export default function ChatbotUI() {
                     background: rgba(255,255,255,0.06);
                 }
                 .side-logo {
-                    font-size: 1.12rem; font-weight: 900;
-                    color: rgba(255,255,255,0.82);
+                    font-size: 1.75rem; font-weight: 900;
+                    color: rgba(255,255,255,0.95);
                     text-decoration: none;
-                    letter-spacing: 0.06em;
+                    letter-spacing: 0.02em;
+                    line-height: 1;
+                    text-shadow: 0 0 16px rgba(255,255,255,0.1);
                     white-space: nowrap;
                     overflow: hidden;
                     flex-shrink: 1;
@@ -649,7 +651,7 @@ export default function ChatbotUI() {
                     letter-spacing: 0.015em;
                     cursor: pointer;
                     transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
-                    margin-bottom: 16px;
+                    margin-bottom: 18px;
                     white-space: nowrap;
                     overflow: hidden;
                     box-sizing: border-box;
@@ -671,7 +673,7 @@ export default function ChatbotUI() {
                     flex: 1;
                     display: flex;
                     flex-direction: column;
-                    gap: 4px;
+                    gap: 6px;
                     overflow-y: auto;
                     overflow-x: hidden;
                 }
@@ -682,7 +684,7 @@ export default function ChatbotUI() {
                 .side-bottom {
                     display: flex;
                     flex-direction: column;
-                    gap: 4px;
+                    gap: 6px;
                     flex-shrink: 0;
                 }
                 .side-divider {
@@ -712,11 +714,11 @@ export default function ChatbotUI() {
                     flex-shrink: 0;
                 }
                 .mobile-logo {
-                    font-size: 1rem; font-weight: 900; color: #fff;
+                    font-size: 1.2rem; font-weight: 900; color: #fff;
                     text-decoration: none; letter-spacing: 0.05em;
                 }
                 .icon-btn {
-                    width: 36px; height: 36px;
+                    width: 40px; height: 40px;
                     display: flex; align-items: center; justify-content: center;
                     border: none; border-radius: 8px;
                     background: transparent; color: rgba(255,255,255,0.35);
