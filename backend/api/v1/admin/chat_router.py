@@ -33,31 +33,63 @@ _chat_flow = ChatFlow()
 
 
 def _extract_user_id_from_cookie(http_request: Request, conn: psycopg.Connection) -> int | None:
-    """JWT 쿠키에서 로그인된 사용자의 DB user_id를 추출한다."""
+    """JWT 쿠키(또는 Authorization 헤더)에서 로그인된 사용자의 DB user_id를 추출한다."""
     import logging
     _logger = logging.getLogger(__name__)
     try:
+        # 1) 쿠키에서 토큰 추출 (httponly 쿠키)
         token = http_request.cookies.get("Authorization")
+
+        # 2) 폴백: Authorization 헤더에서 Bearer 토큰 추출
         if not token:
+            auth_header = http_request.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+
+        if not token:
+            _logger.warning(
+                f"[ChatRouter] 쿠키/헤더에 Authorization 없음 "
+                f"(cookies={list(http_request.cookies.keys())})"
+            )
             return None
 
         from backend.api.v1.admin.auth_router import verify_jwt
         payload = verify_jwt(token)
-        if not payload or payload.get("type") != "access":
+        if not payload:
+            _logger.warning("[ChatRouter] JWT 서명 검증 실패 또는 만료")
+            return None
+        if payload.get("type") != "access":
+            _logger.warning(f"[ChatRouter] JWT type 불일치: {payload.get('type')}")
             return None
 
         social_id = payload.get("sub")
         if not social_id:
+            _logger.warning("[ChatRouter] JWT payload에 sub(social_id) 없음")
             return None
 
         with conn.cursor() as cur:
-            cur.execute("SELECT id FROM users WHERE social_id = %s", (social_id,))
+            # social_accounts → users 조인 (소셜 로그인 계정 기준)
+            cur.execute(
+                """
+                SELECT sa.user_id
+                FROM social_accounts sa
+                JOIN users u ON u.id = sa.user_id
+                WHERE sa.social_id = %s
+                LIMIT 1
+                """,
+                (social_id,),
+            )
             row = cur.fetchone()
+            # 레거시: social_accounts에 없으면 users.social_id 직접 조회
+            if not row:
+                cur.execute("SELECT id FROM users WHERE social_id = %s", (social_id,))
+                row = cur.fetchone()
             if row:
-                _logger.info(f"[ChatRouter] JWT에서 DB user_id 추출: {row[0]}")
+                _logger.info(f"[ChatRouter] JWT에서 DB user_id 추출 성공: {row[0]} (social_id={social_id})")
                 return row[0]
+            _logger.warning(f"[ChatRouter] social_id={social_id} 에 해당하는 user 없음")
     except Exception as e:
-        _logger.warning(f"[ChatRouter] user_id 추출 실패 (기본값 사용): {e}")
+        _logger.warning(f"[ChatRouter] user_id 추출 실패: {e}", exc_info=True)
     return None
 
 

@@ -5,6 +5,7 @@
 from backend.core.llm.factory import get_factory
 from backend.core.llm.providers.midm_llm import MidmLLM
 from backend.core.llm.providers.exaone_llm import ExaoneLLM
+from backend.core.llm.providers.gemini_llm import GeminiLLM
 
 
 def register_all_models() -> None:
@@ -21,5 +22,13 @@ def register_all_models() -> None:
     factory.register("exaone-3.5b", ExaoneLLM)  # 3.5B 추가
     factory.register("exaone-7.8b", ExaoneLLM)
 
-    print("[ModelRegistry] 모델 타입 등록 완료: midm, local, exaone (2.4b, 3.5b, 7.8b)", flush=True)
+    # Gemini API 모델 등록
+    factory.register("gemini", GeminiLLM)
+    factory.register("gemini-api", GeminiLLM)
+
+    print(
+        "[ModelRegistry] 모델 타입 등록 완료: "
+        "midm, local, exaone (2.4b, 3.5b, 7.8b), gemini",
+        flush=True,
+    )
 

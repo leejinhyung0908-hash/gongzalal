@@ -12,6 +12,7 @@ from backend.config import settings
 # 전역 DB 연결
 _db_conn: psycopg.Connection | None = None
 _pg_engine: PGEngine | None = None
+_remote_llm_cache: dict[str, object] = {}
 
 
 def connect_db(
@@ -146,15 +147,29 @@ def get_llm(
         LLM 인스턴스
     """
     from backend.config import settings
+    from backend.core.llm.factory import get_factory
     from backend.core.llm.loader import get_loader
 
-    loader = get_loader()
     model_name = model_name or settings.DEFAULT_MODEL_NAME
     model_type = model_type or settings.DEFAULT_MODEL_TYPE
 
     if not model_name:
         raise ValueError("모델 이름이 지정되지 않았습니다.")
 
+    # 원격 API 기반 모델은 로더의 로컬 경로 검증을 우회합니다.
+    if model_type in ("gemini", "gemini-api"):
+        cache_key = f"{model_type}:{model_name}"
+        cached = _remote_llm_cache.get(cache_key)
+        if cached is not None and hasattr(cached, "is_loaded") and cached.is_loaded():
+            return cached
+
+        factory = get_factory()
+        llm = factory.create(model_type=model_type, model_path=model_name)
+        llm.load()
+        _remote_llm_cache[cache_key] = llm
+        return llm
+
+    loader = get_loader()
     return loader.load_model(model_name=model_name, model_type=model_type)
 
 

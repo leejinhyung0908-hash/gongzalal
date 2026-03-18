@@ -1,12 +1,17 @@
 """학습 계획 프롬프트 빌더.
 
-Phase 1의 풀이 로그 분석 결과 + RAG 검색된 합격 수기를
-하나의 EXAONE 프롬프트로 조합합니다.
+StudyPlanFlow의 요청으로 EXAONE(또는 외부 LLM)에 전달할 프롬프트를 구성합니다.
 
-핵심 원칙:
- - 단순 시간표가 아닌, 사용자와 환경이 유사한 합격자들의 실전 학습법을 종합하여
-   과목별 학습 전략, 일일/주간 루틴, 어려움 극복 방안까지 포함하는
-   종합적인 학습 계획을 생성합니다.
+제공하는 프롬프트 종류:
+1. build_prompt()              — 강력한 LLM(GPT-4 등)용 상세 프롬프트.
+                                  전체 학습 계획 JSON 한 번에 생성.
+2. build_summarization_prompt() — EXAONE 2.4B(CPU)용 경량 프롬프트.
+                                  템플릿 원문 → 단계별 bullet 요약.
+3. build_rag_queries_from_analysis() — RAG 검색 쿼리 목록 생성.
+
+역할 분리 원칙:
+  PromptBuilder — 프롬프트 구성(문자열 조립)만 담당.
+  StudyPlanFlow — 데이터 수집·LLM 호출·파싱·저장 담당.
 """
 
 from __future__ import annotations
@@ -27,7 +32,12 @@ _EMP_LABEL_MAP = {
 
 
 class StudyPlanPromptBuilder:
-    """분석 결과 + RAG 컨텍스트 → EXAONE 프롬프트 생성기."""
+    """학습 계획 생성을 위한 프롬프트 팩토리.
+
+    build_prompt()              : 강력 LLM용 상세 프롬프트 (full JSON 생성)
+    build_summarization_prompt(): EXAONE CPU용 경량 프롬프트 (bullet 요약)
+    build_rag_queries_from_analysis(): RAG 검색 쿼리 목록 생성
+    """
 
     # 시스템 역할 설정
     SYSTEM_ROLE = (
@@ -96,6 +106,11 @@ class StudyPlanPromptBuilder:
   "motivation": "사용자에게 전하는 동기부여 메시지 (유사 환경 합격자의 사례를 언급하며 격려)"
 }"""
 
+    # -------------------------------------------------------------------------
+    # 1) 강력 LLM용 상세 프롬프트 (GPT-4 / Claude 등)
+    #    전체 학습 계획을 JSON 스키마 형태로 한 번에 생성.
+    #    EXAONE 2.4B CPU 환경에서는 토큰 수 초과로 타임아웃 발생 → 사용 불가.
+    # -------------------------------------------------------------------------
     @classmethod
     def build_prompt(
         cls,
@@ -105,7 +120,12 @@ class StudyPlanPromptBuilder:
         *,
         user_info: Optional[Dict[str, Any]] = None,
     ) -> str:
-        """EXAONE에 전달할 최종 프롬프트를 생성합니다."""
+        """강력한 LLM(GPT-4 등)을 위한 상세 학습 계획 생성 프롬프트.
+
+        전체 학습 계획 JSON을 한 번에 생성하도록 요청합니다.
+        EXAONE 2.4B CPU 환경에서는 토큰 수(~2500 tokens)가 많아 타임아웃이
+        발생하므로, build_summarization_prompt()를 대신 사용하세요.
+        """
         parts = [cls.SYSTEM_ROLE, ""]
 
         # 규칙 (합격 수기 활용 강화)
@@ -231,6 +251,96 @@ class StudyPlanPromptBuilder:
 
         return "\n".join(parts)
 
+    # -------------------------------------------------------------------------
+    # 2) EXAONE 2.4B CPU용 경량 요약 프롬프트
+    #    템플릿이 생성한 합격 수기 원문(daily_routine, difficulty, key_strategies)을
+    #    단계별 번호 목록으로 요약하도록 요청합니다.
+    #    입력 ~160 tokens + 출력 ~120 tokens = 총 ~280 tokens → 약 60~70초 소요.
+    # -------------------------------------------------------------------------
+    @classmethod
+    def build_summarization_prompt(
+        cls,
+        base_plan: Dict[str, Any],
+        analysis: Optional[Dict[str, Any]] = None,
+        user_info: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """EXAONE 2.4B CPU용 경량 요약 프롬프트.
+
+        템플릿 계획(base_plan)에 포함된 합격 수기 원문 텍스트를 받아
+        각 항목을 단계별 번호 목록으로 요약하도록 요청합니다.
+
+        Args:
+            base_plan: _generate_template_plan()이 반환한 계획 dict.
+                       daily_routine.description, difficulty_management,
+                       key_strategies 필드의 원문을 사용합니다.
+            analysis:  풀이 분석 데이터 (정답률 등 학생 정보에 활용).
+            user_info: 사용자 프로필 (목표 직렬, 초시 여부 등).
+
+        Returns:
+            EXAONE에 전달할 프롬프트 문자열 (~500 chars).
+        """
+        import re as _re
+
+        def _clip(text: str, n: int = 90) -> str:
+            """원문 접두사 제거 후 n자로 잘라 반환."""
+            t = _re.sub(r"\(합격 수기 \d+\)\s*", "", text or "").strip()
+            return t[:n].rstrip() if len(t) > n else t
+
+        parts = ["합격 수기 원문을 각 항목별로 번호 목록으로 짧게 요약하세요.", ""]
+
+        # 일일 루틴 원문
+        dr = base_plan.get("daily_routine")
+        routine_raw = _clip(dr.get("description", "") if isinstance(dr, dict) else "")
+
+        # 어려움 극복 원문 (첫 번째 항목)
+        diff_list = base_plan.get("difficulty_management") or []
+        diff_raw = _clip(diff_list[0]) if diff_list else ""
+
+        # 핵심 전략 원문 (첫 번째 항목)
+        strat_list = base_plan.get("key_strategies") or []
+        strat_raw = _clip(strat_list[0]) if strat_list else ""
+
+        if routine_raw:
+            parts.append(f"[루틴원문] {routine_raw}")
+        if diff_raw:
+            parts.append(f"[어려움원문] {diff_raw}")
+        if strat_raw:
+            parts.append(f"[전략원문] {strat_raw}")
+
+        # 원문이 하나도 없으면 학생 정보 기반 최소 프롬프트
+        if not any([routine_raw, diff_raw, strat_raw]):
+            info_parts: List[str] = []
+            if user_info:
+                pos = user_info.get("target_position", "")
+                if pos:
+                    is_first = user_info.get("is_first_timer")
+                    suffix = "(초시)" if is_first else "(재시)" if is_first is False else ""
+                    info_parts.append(f"목표:{pos}{suffix}")
+                weak = user_info.get("weak_subjects") or []
+                if weak:
+                    info_parts.append(f"취약:{', '.join(weak[:2])}")
+            if analysis and analysis.get("has_data"):
+                info_parts.append(
+                    f"정답률:{analysis.get('overall_accuracy', 0):.0f}%"
+                )
+            parts.append(
+                "[학생] " + " / ".join(info_parts) if info_parts else "공무원 수험생"
+            )
+
+        parts.append("")
+        parts.append("아래 형식으로 출력 (원문 없는 항목은 생략):")
+        if routine_raw:
+            parts.append("[루틴] 1. 항목 2. 항목 3. 항목")
+        if diff_raw:
+            parts.append("[어려움] 1. 항목 2. 항목")
+        if strat_raw:
+            parts.append("[전략] 1. 항목 2. 항목 3. 항목")
+
+        return "\n".join(parts)
+
+    # -------------------------------------------------------------------------
+    # 3) RAG 검색 쿼리 생성
+    # -------------------------------------------------------------------------
     @classmethod
     def build_rag_queries_from_analysis(
         cls,

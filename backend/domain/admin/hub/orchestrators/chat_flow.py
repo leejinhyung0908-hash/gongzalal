@@ -117,11 +117,15 @@ def _classify_policy_based_detail(text: str) -> str:
     if any(kw in text_lower for kw in audio_keywords):
         return "audio_note"
 
-    # 학습 계획 생성 관련 키워드
+    # 학습 계획 조회/생성 관련 키워드
     study_plan_keywords = [
         "학습 계획", "공부 계획", "스케줄", "일정", "계획 세워",
         "계획 짜", "플랜", "플랜 세워", "플랜 짜",
         "약점 분석", "취약 분석", "성적 분석", "학습 분석",
+        # 학습계획 조회 관련 (띄어쓰기 없는 형태 포함)
+        "학습계획", "내 계획", "내 학습", "학습플랜",
+        "계획 조회", "계획 보여", "계획 확인", "계획 알려",
+        "ai 플랜", "ai플랜", "ai 계획",
     ]
     if any(kw in text_lower for kw in study_plan_keywords):
         return "study_plan"
@@ -200,13 +204,17 @@ def _classify_request_keyword_only(text: str) -> str:
     if any(kw in text_lower for kw in exam_keywords):
         return "exam"
 
-    # 학습 계획 생성 관련 키워드
+    # 학습 계획 조회/생성 관련 키워드
     study_plan_keywords = [
         "학습 계획", "공부 계획", "스케줄", "일정", "계획 세워",
         "계획 짜", "플랜", "플랜 세워", "플랜 짜",
         "약점 분석", "취약 분석", "성적 분석", "학습 분석",
         "어떻게 공부", "어떻게 준비", "공부법",
         "과목별", "약점", "취약", "보완", "전략",
+        # 학습계획 조회 관련 (띄어쓰기 없는 형태 포함)
+        "학습계획", "내 계획", "내 학습", "학습플랜",
+        "계획 조회", "계획 보여", "계획 확인", "계획 알려",
+        "ai 플랜", "ai플랜", "ai 계획",
     ]
     if any(kw in text_lower for kw in study_plan_keywords):
         return "study_plan"
@@ -1025,6 +1033,11 @@ class ChatFlow:
             motivation = plan_json.get("motivation")
             if motivation:
                 parts.append(f"\n🔥 {motivation}")
+
+            # 6) 하단 안내
+            parts.append(
+                "\n\n📌 자세한 내용은 학습 분석 & AI 플랜의 학습계획 항목에서 확인하세요."
+            )
 
             return "\n".join(parts)
 

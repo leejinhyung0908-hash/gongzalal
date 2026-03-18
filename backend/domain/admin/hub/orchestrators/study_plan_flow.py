@@ -40,8 +40,9 @@ from backend.domain.admin.spokes.services.study_plan_service import StudyPlanSer
 
 logger = logging.getLogger(__name__)
 
-_LLM_GENERATION_TIMEOUT_SEC = 80
+_LLM_GENERATION_TIMEOUT_SEC = 90
 _MAX_RAG_CONTEXT_CHARS = 2500
+_EXAONE_MAX_NEW_TOKENS = 120  # 최소 프롬프트 방식: 요약+전략+동기만 생성
 
 _PLAN_NOISE_MARKERS = [
     "목록 다음글",
@@ -387,76 +388,147 @@ class StudyPlanFlow:
                     logger.warning(f"[StudyPlanFlow] RAG 검색 실패: {e}")
 
             # ============================================================
-            # Step 4: EXAONE으로 종합 학습 계획 생성
+            # Step 4: 하이브리드 학습 계획 생성
+            #   4a. 템플릿으로 전체 구조 생성 (Python, 빠르고 안정적)
+            #   4b. LLM 보강:
+            #       - Gemini: build_prompt()로 전체 JSON 생성 후 템플릿과 병합
+            #       - EXAONE: build_summarization_prompt()로 핵심 필드만 요약
             # ============================================================
-            generated_plan = None
+            generated_plan = self._generate_template_plan(
+                analysis, user_info, matched_results
+            )
             generation_method = "template"
 
             if llm is not None:
+                _t0 = time.time()
                 try:
-                    _t0 = time.time()
                     if not llm.is_loaded():
                         llm.load()
 
-                    # 프롬프트 조합 (확장된 컨텍스트 포함)
-                    prompt = StudyPlanPromptBuilder.build_prompt(
-                        analysis_summary=analysis_summary,
-                        rag_context=rag_context,
-                        user_question=request_text,
-                        user_info=user_info,
-                    )
+                    llm_name = llm.__class__.__name__.lower()
+                    is_gemini = "gemini" in llm_name
 
-                    logger.info(
-                        f"[StudyPlanFlow] Step4 EXAONE 생성 요청... "
-                        f"(프롬프트 길이: {len(prompt)} chars)"
-                    )
+                    if is_gemini:
+                        # Gemini: 상세 프롬프트로 전체 계획 JSON 생성
+                        prompt = StudyPlanPromptBuilder.build_prompt(
+                            analysis_summary=analysis_summary,
+                            rag_context=rag_context,
+                            user_question=request_text,
+                            user_info=user_info,
+                        )
+                        max_tokens = 4096
+                        logger.info(
+                            f"[StudyPlanFlow] Step4 Gemini 전체 계획 생성 요청 "
+                            f"(프롬프트: {len(prompt)} chars, max_tokens: {max_tokens})"
+                        )
+                    else:
+                        # EXAONE: 경량 요약 프롬프트
+                        prompt = StudyPlanPromptBuilder.build_summarization_prompt(
+                            base_plan=generated_plan,
+                            analysis=analysis,
+                            user_info=user_info,
+                        )
+                        max_tokens = _EXAONE_MAX_NEW_TOKENS
+                        logger.info(
+                            f"[StudyPlanFlow] Step4 EXAONE 핵심 필드 생성 요청 "
+                            f"(프롬프트: {len(prompt)} chars, max_tokens: {max_tokens})"
+                        )
 
-                    # EXAONE 생성 — 하드 타임아웃 후 템플릿 폴백
-                    # NOTE: with 블록을 사용하면 timeout 후에도 executor.shutdown(wait=True)가
-                    #       블로킹되므로, 명시적으로 shutdown(wait=False)를 호출한다.
+                    # 타임아웃: shutdown(wait=False)로 블로킹 방지
+                    generate_kwargs: dict = {
+                        "max_new_tokens": max_tokens,
+                        "temperature": 0.7,
+                        "top_p": 0.9,
+                    }
+                    if is_gemini:
+                        # 신규 google.genai SDK: response_mime_type으로 순수 JSON 강제
+                        generate_kwargs["response_mime_type"] = "application/json"
+
                     executor = ThreadPoolExecutor(max_workers=1)
                     future = executor.submit(
                         llm.generate,
                         prompt,
-                        max_new_tokens=512,
-                        temperature=0.6,
-                        top_p=0.9,
+                        **generate_kwargs,
                     )
                     try:
                         raw_answer = future.result(timeout=_LLM_GENERATION_TIMEOUT_SEC)
                     except FuturesTimeoutError:
                         logger.warning(
-                            f"[StudyPlanFlow] EXAONE 생성 타임아웃({_LLM_GENERATION_TIMEOUT_SEC}s), "
-                            "템플릿으로 폴백"
+                            f"[StudyPlanFlow] LLM 타임아웃({_LLM_GENERATION_TIMEOUT_SEC}s), "
+                            "템플릿 유지"
                         )
                         raw_answer = ""
                     finally:
-                        executor.shutdown(wait=False)  # 백그라운드 스레드를 기다리지 않음
+                        executor.shutdown(wait=False)
 
                     _gen_elapsed = time.time() - _t0
                     if not raw_answer or not raw_answer.strip():
                         logger.warning(
-                            f"[StudyPlanFlow] EXAONE 빈 응답 ({_gen_elapsed:.1f}s), 템플릿으로 폴백"
+                            f"[StudyPlanFlow] LLM 빈 응답 ({_gen_elapsed:.1f}s), 템플릿 유지"
                         )
                     else:
-                        generated_plan = self._parse_plan_json(raw_answer)
-                        generation_method = "exaone"
-                        logger.info(
-                            f"[StudyPlanFlow] Step4 EXAONE 생성 완료 ({_gen_elapsed:.1f}s, "
-                            f"응답 {len(raw_answer)} chars)"
-                        )
+                        if is_gemini:
+                            parsed_plan = self._parse_plan_json(raw_answer)
+                            if (
+                                isinstance(parsed_plan, dict)
+                                and not parsed_plan.get("parse_failed")
+                            ):
+                                generated_plan = self._merge_plan_with_template(
+                                    generated_plan, parsed_plan
+                                )
+                                generation_method = "gemini_full"
+                                logger.info(
+                                    f"[StudyPlanFlow] Step4 Gemini 전체 계획 병합 완료 "
+                                    f"({_gen_elapsed:.1f}s, {len(raw_answer)} chars)"
+                                )
+                            else:
+                                logger.warning(
+                                    f"[StudyPlanFlow] Gemini JSON 파싱 실패 "
+                                    f"({_gen_elapsed:.1f}s), 템플릿 유지 "
+                                    f"(총 {len(raw_answer)}chars)\n"
+                                    f"head: {raw_answer[:200]!r}\n"
+                                    f"tail: {raw_answer[-200:]!r}"
+                                )
+                        else:
+                            fields = self._extract_minimal_fields(raw_answer)
+                            if fields:
+                                generated_plan = dict(generated_plan)
+
+                                # [루틴] → daily_routine.description을 번호 목록 문자열로 교체
+                                if "routine" in fields:
+                                    bullets = fields["routine"]
+                                    desc = "\n".join(
+                                        f"{i+1}. {b}" for i, b in enumerate(bullets)
+                                    )
+                                    dr = dict(generated_plan.get("daily_routine") or {})
+                                    dr["description"] = desc
+                                    generated_plan["daily_routine"] = dr
+
+                                # [어려움] → difficulty_management 리스트 교체
+                                if "difficulty" in fields:
+                                    generated_plan["difficulty_management"] = fields["difficulty"]
+
+                                # [전략] → key_strategies 리스트 교체
+                                if "strategy" in fields:
+                                    generated_plan["key_strategies"] = fields["strategy"]
+
+                                generation_method = "exaone_hybrid"
+                                logger.info(
+                                    f"[StudyPlanFlow] Step4 EXAONE 요약 병합 완료 "
+                                    f"({_gen_elapsed:.1f}s, {len(raw_answer)} chars, "
+                                    f"fields={list(fields.keys())})"
+                                )
+                            else:
+                                logger.warning(
+                                    f"[StudyPlanFlow] EXAONE 필드 추출 실패 "
+                                    f"({_gen_elapsed:.1f}s), 템플릿(원문) 유지\n"
+                                    f"raw: {raw_answer[:200]!r}"
+                                )
                 except Exception as e:
                     logger.warning(
-                        f"[StudyPlanFlow] EXAONE 생성 실패 ({time.time()-_t0:.1f}s), "
-                        f"템플릿으로 폴백: {e}"
+                        f"[StudyPlanFlow] LLM 생성 실패 ({time.time()-_t0:.1f}s), "
+                        f"템플릿 유지: {e}"
                     )
-
-            # EXAONE 실패 시 분석 데이터 기반 템플릿 폴백
-            if generated_plan is None:
-                generated_plan = self._generate_template_plan(
-                    analysis, user_info, matched_results
-                )
-                generation_method = "template"
 
             # 최종 저장 전 안전 정제: LLM/템플릿 결과에 남은 잡문구 제거
             generated_plan = _sanitize_plan_payload(generated_plan)
@@ -551,28 +623,148 @@ class StudyPlanFlow:
             summary["study_duration"] = user_info["study_duration"]
         return summary
 
+    def _merge_plan_with_template(
+        self,
+        base_plan: Dict[str, Any],
+        generated_plan: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """LLM 생성 계획을 템플릿 구조에 안전하게 병합합니다.
+
+        - 기본 키 누락 방지: base_plan 키를 유지
+        - daily_routine은 dict 단위로 부분 병합
+        - list/dict/str 타입이 맞는 경우에만 덮어씀
+        """
+        merged = dict(base_plan)
+
+        for key, value in generated_plan.items():
+            if value is None:
+                continue
+
+            if key == "daily_routine":
+                base_daily = merged.get("daily_routine", {})
+                if isinstance(base_daily, dict) and isinstance(value, dict):
+                    daily_merged = dict(base_daily)
+                    for dk, dv in value.items():
+                        if dv not in (None, ""):
+                            daily_merged[dk] = dv
+                    merged["daily_routine"] = daily_merged
+                continue
+
+            if key in merged:
+                if isinstance(merged[key], list) and isinstance(value, list) and value:
+                    merged[key] = value
+                elif isinstance(merged[key], dict) and isinstance(value, dict) and value:
+                    merged[key] = value
+                elif isinstance(merged[key], str) and isinstance(value, str) and value.strip():
+                    merged[key] = value
+                elif not isinstance(merged[key], (list, dict, str)):
+                    merged[key] = value
+
+        return merged
+
+    def _extract_minimal_fields(self, raw_text: str) -> Optional[Dict[str, Any]]:
+        """EXAONE 요약 응답에서 태그별 bullet 목록을 추출합니다.
+
+        [루틴] 1. ... 2. ... / [어려움] 1. ... / [전략] 1. ... 형식을 파싱합니다.
+        최소 1개 필드라도 추출되면 성공으로 간주합니다.
+        """
+        if not raw_text:
+            return None
+
+        tag_map = {
+            "routine": r"\[루틴\]",
+            "difficulty": r"\[어려움\]",
+            "strategy": r"\[전략\]",
+        }
+
+        # 각 태그의 위치를 찾아 사이의 텍스트 추출
+        tag_positions: List[tuple] = []
+        for field_key, pattern in tag_map.items():
+            m = re.search(pattern, raw_text)
+            if m:
+                tag_positions.append((m.start(), m.end(), field_key))
+
+        if not tag_positions:
+            return None
+
+        tag_positions.sort(key=lambda x: x[0])
+        fields: Dict[str, Any] = {}
+
+        for i, (start, end, field_key) in enumerate(tag_positions):
+            next_start = (
+                tag_positions[i + 1][0] if i + 1 < len(tag_positions) else len(raw_text)
+            )
+            block = raw_text[end:next_start].strip()
+
+            # "1. 항목 2. 항목" 또는 "1. 항목\n2. 항목" 모두 파싱
+            items = re.findall(r"\d+\.\s*(.+?)(?=\d+\.|$)", block, re.DOTALL)
+            bullets = []
+            for item in items:
+                item = re.sub(r"\*+", "", item)
+                item = item.strip().rstrip(".")
+                if len(item) >= 5:
+                    bullets.append(item)
+
+            if bullets:
+                fields[field_key] = bullets
+
+        return fields if fields else None
+
     def _parse_plan_json(self, raw_text: str) -> Optional[Dict[str, Any]]:
-        """EXAONE의 응답에서 JSON 학습 계획을 파싱합니다."""
-        try:
-            return json.loads(raw_text)
-        except json.JSONDecodeError:
-            pass
+        """LLM 응답에서 JSON 학습 계획을 파싱합니다.
 
-        import re
-
-        json_match = re.search(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", raw_text)
-        if json_match:
+        단계별 파싱 전략:
+        1. 직접 json.loads
+        2. ```json ... ``` 코드블록 추출 (greedy → 중첩 {} 처리)
+        3. 첫 { ~ 마지막 } 추출
+        4. 각 단계 실패 시 JSON repair (후행 쉼표·스마트 따옴표 제거) 후 재시도
+        """
+        def _try_loads(text: str) -> Optional[Dict[str, Any]]:
             try:
-                return json.loads(json_match.group(1))
+                result = json.loads(text)
+                if isinstance(result, dict):
+                    return result
             except json.JSONDecodeError:
                 pass
+            return None
 
-        brace_match = re.search(r"\{[\s\S]*\}", raw_text)
-        if brace_match:
-            try:
-                return json.loads(brace_match.group(0))
-            except json.JSONDecodeError:
-                pass
+        def _repair(text: str) -> str:
+            """최소한의 JSON 문법 보정."""
+            # 후행 쉼표 제거: , } 또는 , ]
+            text = re.sub(r",\s*([}\]])", r"\1", text)
+            # 스마트 따옴표 → 일반 따옴표
+            for ch, rep in [("\u201c", '"'), ("\u201d", '"'),
+                             ("\u2018", "'"), ("\u2019", "'")]:
+                text = text.replace(ch, rep)
+            # 불필요한 제어 문자 제거 (탭·개행 제외)
+            text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
+            return text
+
+        def _try_with_repair(text: str) -> Optional[Dict[str, Any]]:
+            result = _try_loads(text)
+            if result is not None:
+                return result
+            return _try_loads(_repair(text))
+
+        # Step 1: 직접 파싱
+        result = _try_with_repair(raw_text)
+        if result is not None:
+            return result
+
+        # Step 2: ```json ... ``` 코드블록 추출 — greedy 매칭으로 마지막 ``` 까지
+        code_match = re.search(r"```(?:json)?\s*(\{[\s\S]*\})\s*```", raw_text)
+        if code_match:
+            result = _try_with_repair(code_match.group(1))
+            if result is not None:
+                return result
+
+        # Step 3: 첫 { ~ 마지막 } 직접 추출
+        start = raw_text.find("{")
+        end = raw_text.rfind("}")
+        if start != -1 and end > start:
+            result = _try_with_repair(raw_text[start:end + 1])
+            if result is not None:
+                return result
 
         logger.warning("[StudyPlanFlow] JSON 파싱 실패, 텍스트 형태로 저장")
         return {
@@ -901,65 +1093,110 @@ class StudyPlanFlow:
         analysis: Dict[str, Any],
         user_info: Optional[Dict[str, Any]] = None,
     ) -> str:
-        """분석 데이터 + 사용자 프로필 기반 요약을 생성합니다."""
-        summary_parts = []
+        """분석 통계 데이터 + 사용자 프로필 기반 서술형 요약을 생성합니다."""
+        from backend.domain.admin.spokes.agents.analysis.study_plan_prompt_builder import (
+            _EMP_LABEL_MAP,
+        )
 
+        # ── 프로필 서술 ──
+        profile_desc = ""
         if user_info:
-            profile_parts = []
-            if user_info.get("target_position"):
-                profile_parts.append(f"목표 직렬: {user_info['target_position']}")
-            if user_info.get("is_first_timer") is not None:
-                profile_parts.append(
-                    "초시생" if user_info["is_first_timer"] else "재시생"
-                )
-            if user_info.get("employment_status"):
-                from backend.domain.admin.spokes.agents.analysis.study_plan_prompt_builder import (
-                    _EMP_LABEL_MAP,
-                )
-                emp_label = _EMP_LABEL_MAP.get(
-                    user_info["employment_status"],
-                    user_info["employment_status"],
-                )
-                profile_parts.append(f"현재 {emp_label}")
-            if profile_parts:
-                summary_parts.append(f"[{', '.join(profile_parts)}]")
+            parts = []
+            pos = user_info.get("target_position", "")
+            is_first = user_info.get("is_first_timer")
+            emp = user_info.get("employment_status", "")
+            emp_label = _EMP_LABEL_MAP.get(emp, emp) if emp else ""
 
+            if pos:
+                timer_str = "초시생" if is_first else "재시생" if is_first is False else "수험생"
+                emp_str = f" {emp_label}" if emp_label else ""
+                parts.append(f"{pos} 직렬을 목표로 하는{emp_str} {timer_str}")
+
+            if user_info.get("study_duration"):
+                parts.append(f"수험 기간은 {user_info['study_duration']}")
+            if user_info.get("daily_study_time"):
+                h = user_info["daily_study_time"] / 60
+                parts.append(f"일일 학습 가능 시간은 {h:.1f}시간")
+
+            profile_desc = ", ".join(parts) + "입니다." if parts else ""
+
+        # ── 풀이 데이터 없는 경우 ──
         if not analysis.get("has_data"):
-            summary_parts.append(
-                "아직 풀이 기록이 없습니다. 사용자 프로필과 유사 환경 합격자 수기를 "
-                "기반으로 학습 계획을 생성했습니다."
-                if user_info
-                else "아직 풀이 기록이 없습니다. 모의고사를 풀고 나면 맞춤 분석이 가능합니다."
-            )
-            return " ".join(summary_parts)
+            if profile_desc:
+                return (
+                    f"{profile_desc} "
+                    "아직 풀이 기록이 없어 사용자 프로필과 유사 환경 합격자 수기를 "
+                    "바탕으로 학습 계획을 수립했습니다."
+                )
+            return "아직 풀이 기록이 없습니다. 모의고사를 풀고 나면 맞춤 분석이 가능합니다."
 
+        # ── 통계 데이터 서술 ──
         acc = analysis.get("overall_accuracy", 0)
         total = analysis.get("total_solved", 0)
         weak = analysis.get("weak_subjects", [])
+        strong = analysis.get("strong_subjects", [])
 
-        summary_parts.append(f"총 {total}문제를 풀었고, 전체 정답률은 {acc:.1f}%입니다.")
+        sentences: List[str] = []
 
-        if weak:
-            weak_strs = [f"{w['subject']}({w['accuracy']:.0f}%)" for w in weak]
-            summary_parts.append(f"분석 결과 취약 과목은 {', '.join(weak_strs)}입니다.")
+        # 첫 문장: 프로필 + 성적 현황
+        if profile_desc:
+            profile_base = profile_desc.rstrip("입니다.").rstrip(".")
+            sentences.append(
+                f"{profile_base}으로, 총 {total}문제를 풀어 "
+                f"전체 정답률 {acc:.1f}%를 기록했습니다."
+            )
+        else:
+            sentences.append(
+                f"총 {total}문제를 풀었고, 전체 정답률은 {acc:.1f}%입니다."
+            )
 
-        if user_info and user_info.get("weak_subjects"):
-            analysis_weak = {w["subject"] for w in weak}
-            user_weak_set = set(user_info["weak_subjects"])
-            overlap = analysis_weak & user_weak_set
+        # 두 번째 문장: 취약·강점 과목
+        weak_strs = [f"{w['subject']}({w['accuracy']:.0f}%)" for w in weak[:3]]
+        strong_strs = [f"{s['subject']}({s['accuracy']:.0f}%)" for s in strong[:2]]
+        if weak_strs and strong_strs:
+            sentences.append(
+                f"분석 결과 {', '.join(weak_strs)} 과목이 취약하며, "
+                f"{', '.join(strong_strs)} 과목은 상대적으로 안정적입니다."
+            )
+        elif weak_strs:
+            sentences.append(
+                f"분석 결과 {', '.join(weak_strs)} 과목이 취약한 것으로 나타났습니다."
+            )
+
+        # 세 번째 문장: 자가진단 일치 여부
+        if user_info and user_info.get("weak_subjects") and weak:
+            analysis_weak_set = {w["subject"] for w in weak}
+            user_weak_set = set(user_info.get("weak_subjects", []))
+            overlap = analysis_weak_set & user_weak_set
             if overlap:
-                summary_parts.append(
-                    f"자가진단과 실제 분석이 일치하는 취약 과목: {', '.join(overlap)}"
+                sentences.append(
+                    f"특히 {', '.join(overlap)} 과목은 자가진단과 실제 분석 모두에서 "
+                    "취약점으로 확인되어 집중 보강이 필요합니다."
                 )
 
+        # 마지막 문장: 학습 방향 제시
         if acc >= 80:
-            summary_parts.append("전반적으로 우수한 성적이며, 실전 대비에 집중하면 좋겠습니다.")
+            sentences.append(
+                "전반적으로 높은 정답률을 보이고 있으므로, "
+                "실전 모의고사 위주로 실력을 마무리하는 전략을 권장합니다."
+            )
         elif acc >= 60:
-            summary_parts.append("기본기는 갖춰져 있으므로, 취약 과목 보강에 집중하세요.")
+            sentences.append(
+                "기본기는 갖춰진 수준이므로, 취약 과목 집중 보강과 함께 "
+                "오답 분석을 통해 합격선까지 끌어올리는 것이 목표입니다."
+            )
+        elif acc >= 40:
+            sentences.append(
+                "기초 개념 학습과 기출문제 반복 풀이에 집중하여 "
+                "전체 정답률을 60% 이상으로 끌어올리는 것을 목표로 삼으세요."
+            )
         else:
-            summary_parts.append("기초 개념 학습과 오답 복습에 집중하는 것을 권장합니다.")
+            sentences.append(
+                "현재 기초 단계에 해당하므로, 개념 학습을 최우선으로 하고 "
+                "오답 복습을 꾸준히 병행하여 실력을 쌓아가세요."
+            )
 
-        return " ".join(summary_parts)
+        return " ".join(sentences)
 
     async def _finalize_node(
         self, state: StudyPlanProcessingState

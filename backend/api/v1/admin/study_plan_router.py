@@ -17,6 +17,7 @@ import psycopg
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from backend.config import settings
 from backend.dependencies import get_db_connection
 from backend.domain.admin.models.transfers.user_transfer import (
     StudyPlanTransfer,
@@ -84,10 +85,15 @@ async def generate_study_plan_ai(
         from backend.domain.admin.hub.orchestrators.study_plan_flow import StudyPlanFlow
 
         # LLM 로드 시도 (실패해도 템플릿으로 폴백)
+        # Study Plan은 모델 타입을 분리해 운영할 수 있습니다.
+        # 예) STUDY_PLAN_MODEL_TYPE=gemini, STUDY_PLAN_MODEL_NAME=gemini-1.5-flash
         llm = None
         try:
             from backend.dependencies import get_llm
-            llm = get_llm()
+            llm = get_llm(
+                model_type=settings.STUDY_PLAN_MODEL_TYPE,
+                model_name=settings.STUDY_PLAN_MODEL_NAME,
+            )
         except Exception as e:
             logger.warning(f"[StudyPlanRouter] LLM 로드 실패, 템플릿 사용: {e}")
 

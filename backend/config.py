@@ -21,6 +21,8 @@ class Settings:
     # OpenAI 설정
     OPENAI_API_KEY: Optional[str]
     OPENAI_MODEL: str
+    GEMINI_API_KEY: Optional[str]
+    GEMINI_MODEL: str
 
     # 벡터 임베딩 설정
     EMBED_DIM: int
@@ -44,6 +46,8 @@ class Settings:
     MODEL_BASE_PATH: str
     DEFAULT_MODEL_TYPE: str
     DEFAULT_MODEL_NAME: str
+    STUDY_PLAN_MODEL_TYPE: str
+    STUDY_PLAN_MODEL_NAME: str
 
     def __init__(self):
         """설정 초기화 및 검증."""
@@ -64,6 +68,8 @@ class Settings:
         # OpenAI 설정
         self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
         self.OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+        self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
         # 벡터 임베딩 설정
         self.EMBED_DIM = int(os.getenv("EMBED_DIM", "1024"))
@@ -100,6 +106,14 @@ class Settings:
         self.MODEL_BASE_PATH = os.getenv("MODEL_BASE_PATH", "./artifacts")
         self.DEFAULT_MODEL_TYPE = os.getenv("DEFAULT_MODEL_TYPE", "exaone")
         self.DEFAULT_MODEL_NAME = os.getenv("DEFAULT_MODEL_NAME", "artifacts/base-models/exaone")
+        self.STUDY_PLAN_MODEL_TYPE = os.getenv(
+            "STUDY_PLAN_MODEL_TYPE",
+            self.DEFAULT_MODEL_TYPE,
+        )
+        self.STUDY_PLAN_MODEL_NAME = os.getenv(
+            "STUDY_PLAN_MODEL_NAME",
+            self.GEMINI_MODEL if self.STUDY_PLAN_MODEL_TYPE in ("gemini", "gemini-api") else self.DEFAULT_MODEL_NAME,
+        )
 
         # 모델 경로 설정 (artifacts 기준)
         self.EXAONE_BASE_MODEL_PATH = os.getenv(

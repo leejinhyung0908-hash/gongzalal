@@ -125,6 +125,9 @@ def _set_auth_cookies(response: Response, access_token: str, refresh_token: str)
     """인증 쿠키를 응답에 설정."""
     is_production = os.getenv("COOKIE_SECURE", "false").lower() == "true"
     same_site = os.getenv("COOKIE_SAME_SITE", "lax")
+    # COOKIE_DOMAIN=.leejinhyung.shop 으로 설정하면 모든 서브도메인에서 쿠키 공유
+    # (api.leejinhyung.shop ↔ leejinhyung.shop 간 쿠키 전달 가능)
+    cookie_domain = os.getenv("COOKIE_DOMAIN", None)
 
     # Access Token 쿠키 (30분)
     response.set_cookie(
@@ -135,6 +138,7 @@ def _set_auth_cookies(response: Response, access_token: str, refresh_token: str)
         samesite=same_site,
         path="/",
         max_age=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        domain=cookie_domain,
     )
 
     # Refresh Token 쿠키 (7일)
@@ -146,22 +150,40 @@ def _set_auth_cookies(response: Response, access_token: str, refresh_token: str)
         samesite=same_site,
         path="/",
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        domain=cookie_domain,
     )
 
 
 def _clear_auth_cookies(response: Response):
-    """인증 쿠키 삭제."""
+    """인증 쿠키 삭제.
+
+    COOKIE_DOMAIN 도입 이전에 발급된 레거시 쿠키(domain=없음)와
+    신규 쿠키(domain=.leejinhyung.shop)를 모두 삭제합니다.
+    """
     is_production = os.getenv("COOKIE_SECURE", "false").lower() == "true"
     same_site = os.getenv("COOKIE_SAME_SITE", "lax")
+    cookie_domain = os.getenv("COOKIE_DOMAIN", None)
 
+    # 신규 쿠키 삭제 (domain=.leejinhyung.shop)
     response.delete_cookie(
         key="Authorization", httponly=True, secure=is_production,
-        samesite=same_site, path="/",
+        samesite=same_site, path="/", domain=cookie_domain,
     )
     response.delete_cookie(
         key="RefreshToken", httponly=True, secure=is_production,
-        samesite=same_site, path="/",
+        samesite=same_site, path="/", domain=cookie_domain,
     )
+
+    # 레거시 쿠키 삭제 (domain 없음 → api.leejinhyung.shop에 묶인 구 쿠키)
+    if cookie_domain:
+        response.delete_cookie(
+            key="Authorization", httponly=True, secure=is_production,
+            samesite=same_site, path="/",
+        )
+        response.delete_cookie(
+            key="RefreshToken", httponly=True, secure=is_production,
+            samesite=same_site, path="/",
+        )
 
 
 def _get_frontend_callback_url() -> str:
