@@ -416,7 +416,7 @@ class StudyPlanFlow:
                             user_question=request_text,
                             user_info=user_info,
                         )
-                        max_tokens = 4096
+                        max_tokens = 8192
                         logger.info(
                             f"[StudyPlanFlow] Step4 Gemini 전체 계획 생성 요청 "
                             f"(프롬프트: {len(prompt)} chars, max_tokens: {max_tokens})"

@@ -54,7 +54,7 @@ export default function MainPage() {
             </div>
 
             {/* 시작하기 버튼 */}
-            <a href="/login" className="start-btn">
+            <a href="/about" className="start-btn">
                 <span className="start-btn-text">시작하기</span>
                 <span className="start-btn-line" />
                 <span className="start-btn-shimmer" />
