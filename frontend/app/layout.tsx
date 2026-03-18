@@ -24,13 +24,8 @@ export const metadata: Metadata = {
         description: "공무원 시험, 잘 알려주는 AI",
     },
     icons: {
-        icon: [
-            { url: "/icons/icon-192x192.svg", sizes: "192x192", type: "image/svg+xml" },
-            { url: "/icons/icon-512x512.svg", sizes: "512x512", type: "image/svg+xml" },
-        ],
-        apple: [
-            { url: "/icons/icon-192x192.svg", sizes: "192x192", type: "image/svg+xml" },
-        ],
+        icon: [{ url: "/icons/gong_icon.png", type: "image/png" }],
+        apple: [{ url: "/icons/gong_icon.png", type: "image/png" }],
     },
 };
 

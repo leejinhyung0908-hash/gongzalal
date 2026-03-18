@@ -6,5 +6,12 @@
   "background_color": "#020817",
   "theme_color": "#020817",
   "lang": "ko-KR",
-  "icons": []
+  "icons": [
+    {
+      "src": "/icons/gong_icon.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
