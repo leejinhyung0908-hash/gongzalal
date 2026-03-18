@@ -24,7 +24,15 @@ def connect_db(
     last_err: Exception | None = None
     for attempt in range(1, retries + 1):
         try:
-            conn = psycopg.connect(dsn, autocommit=True)
+            conn = psycopg.connect(
+                dsn,
+                autocommit=True,
+                # TCP keepalive: LLM 생성(60s+) 동안 Neon DB idle timeout 방지
+                keepalives=1,
+                keepalives_idle=30,
+                keepalives_interval=10,
+                keepalives_count=5,
+            )
             return conn
         except psycopg.OperationalError as exc:
             last_err = exc
@@ -62,17 +70,39 @@ def setup_schema(conn: psycopg.Connection) -> None:
 
 
 def get_db_connection() -> psycopg.Connection:
-    """전역 DB 연결을 반환하거나 새로 생성한다."""
+    """전역 DB 연결을 반환하거나 새로 생성한다.
+
+    LLM 생성처럼 장시간 처리 후 Neon DB가 SSL 연결을 끊을 수 있으므로
+    SELECT 1로 연결 상태를 확인하고 죽어있으면 재연결한다.
+    """
     global _db_conn
+
+    def _reconnect() -> None:
+        global _db_conn
+        _db_conn = connect_db(settings.DATABASE_URL)
+        setup_schema(_db_conn)
+
     if _db_conn is None or _db_conn.closed:
         try:
-            _db_conn = connect_db(settings.DATABASE_URL)
-            setup_schema(_db_conn)
+            _reconnect()
         except Exception as exc:
             print(f"[DB] 연결 오류: {exc}", flush=True)
             raise HTTPException(
                 status_code=503, detail=f"데이터베이스 연결 실패: {str(exc)}"
             )
+    else:
+        # 연결이 살아있는지 확인 (Neon idle timeout 대응)
+        try:
+            with _db_conn.cursor() as cur:
+                cur.execute("SELECT 1")
+        except Exception as exc:
+            print(f"[DB] 연결 유효성 실패, 재연결: {exc}", flush=True)
+            try:
+                _reconnect()
+            except Exception as exc2:
+                raise HTTPException(
+                    status_code=503, detail=f"데이터베이스 재연결 실패: {str(exc2)}"
+                )
     return _db_conn
 
 

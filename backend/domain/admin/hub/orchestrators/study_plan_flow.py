@@ -40,8 +40,8 @@ from backend.domain.admin.spokes.services.study_plan_service import StudyPlanSer
 
 logger = logging.getLogger(__name__)
 
-_LLM_GENERATION_TIMEOUT_SEC = 45
-_MAX_RAG_CONTEXT_CHARS = 12000
+_LLM_GENERATION_TIMEOUT_SEC = 80
+_MAX_RAG_CONTEXT_CHARS = 2500
 
 _PLAN_NOISE_MARKERS = [
     "목록 다음글",
@@ -411,23 +411,27 @@ class StudyPlanFlow:
                         f"(프롬프트 길이: {len(prompt)} chars)"
                     )
 
-                    # EXAONE 생성 — 하드 타임아웃을 두고 지연 시 템플릿으로 즉시 폴백
-                    with ThreadPoolExecutor(max_workers=1) as executor:
-                        future = executor.submit(
-                            llm.generate,
-                            prompt,
-                            max_new_tokens=1024,
-                            temperature=0.6,
-                            top_p=0.9,
+                    # EXAONE 생성 — 하드 타임아웃 후 템플릿 폴백
+                    # NOTE: with 블록을 사용하면 timeout 후에도 executor.shutdown(wait=True)가
+                    #       블로킹되므로, 명시적으로 shutdown(wait=False)를 호출한다.
+                    executor = ThreadPoolExecutor(max_workers=1)
+                    future = executor.submit(
+                        llm.generate,
+                        prompt,
+                        max_new_tokens=512,
+                        temperature=0.6,
+                        top_p=0.9,
+                    )
+                    try:
+                        raw_answer = future.result(timeout=_LLM_GENERATION_TIMEOUT_SEC)
+                    except FuturesTimeoutError:
+                        logger.warning(
+                            f"[StudyPlanFlow] EXAONE 생성 타임아웃({_LLM_GENERATION_TIMEOUT_SEC}s), "
+                            "템플릿으로 폴백"
                         )
-                        try:
-                            raw_answer = future.result(timeout=_LLM_GENERATION_TIMEOUT_SEC)
-                        except FuturesTimeoutError:
-                            logger.warning(
-                                f"[StudyPlanFlow] EXAONE 생성 타임아웃({_LLM_GENERATION_TIMEOUT_SEC}s), "
-                                "템플릿으로 폴백"
-                            )
-                            raw_answer = ""
+                        raw_answer = ""
+                    finally:
+                        executor.shutdown(wait=False)  # 백그라운드 스레드를 기다리지 않음
 
                     _gen_elapsed = time.time() - _t0
                     if not raw_answer or not raw_answer.strip():

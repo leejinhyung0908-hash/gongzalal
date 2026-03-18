@@ -433,15 +433,57 @@ def search_with_profile_matching(
 # LLM 컨텍스트 빌더 (상세 버전)
 # ============================================================================
 
+_SUBJECT_KEYWORDS: List[str] = [
+    "행정법", "행정학", "국어", "영어", "한국사", "경제학", "경제",
+    "노동법", "세법", "회계", "사회", "과학", "수학", "헌법",
+    "공직선거법", "형법", "형사소송법", "민법", "교육학",
+]
+
+
+def _extract_subject_section(full_text: str, target: str, max_chars: int = 400) -> str:
+    """합쳐진 과목 학습법 텍스트에서 특정 과목 부분을 추출합니다."""
+    import re
+
+    # 대상 과목 위치 탐색
+    idx = -1
+    for pat in [rf"{target}[교재강의\s]*[:：]", rf"{target}[은는이가]", target]:
+        m = re.search(pat, full_text)
+        if m:
+            idx = m.start()
+            break
+
+    if idx == -1:
+        return full_text[:max_chars]
+
+    section = full_text[idx: idx + max_chars]
+
+    # 다음 과목 시작 지점에서 자르기
+    for other in _SUBJECT_KEYWORDS:
+        if other == target:
+            continue
+        m = re.search(rf"\n?{other}[교재강의\s]*[:：]|^{other}[은는이가]", section[20:])
+        if m:
+            section = section[: 20 + m.start()]
+            break
+
+    return section.strip()
+
+
 def build_mentoring_context(
     results: List[Dict[str, Any]],
     max_results: int = 5,
     include_details: bool = False,
+    question: str = "",
 ) -> str:
     """검색된 합격 수기를 LLM 컨텍스트 문자열로 조합합니다.
 
     include_details=True 일 때 모든 컬럼의 원문을 최대한 포함합니다.
+    question이 주어지면 관련 과목 섹션을 우선 추출합니다.
     """
+    # 질문에서 언급된 과목 탐지
+    target_subject = next(
+        (s for s in _SUBJECT_KEYWORDS if s in question), None
+    )
     if not results:
         return ""
 
@@ -456,10 +498,22 @@ def build_mentoring_context(
         if bonus > 0:
             sim_label += f" (+환경유사도 {bonus:.1%})"
 
-        part = f"[합격 수기 {i}] {title} (유사도: {sim_label})\n"
+        # 합격자 프로필 레이블 (EXAONE이 이 값으로 합격자를 지칭하도록)
+        profile_parts: List[str] = []
+        if exam_info.get("year"):
+            profile_parts.append(f"{exam_info['year']}년")
+        if exam_info.get("exam_type"):
+            profile_parts.append(exam_info["exam_type"])
+        if exam_info.get("grade"):
+            profile_parts.append(f"{exam_info['grade']}급")
+        if exam_info.get("job_series"):
+            profile_parts.append(exam_info["job_series"])
+        if exam_info.get("총 수험기간"):
+            profile_parts.append(f"수험기간 {exam_info['총 수험기간']}")
+        profile_label = " ".join(profile_parts) + " 합격자" if profile_parts else "합격자"
 
-        # ── 출처 ──
-        part += f"출처: {r.get('source', 'unknown')}\n"
+        part = f"[합격 수기 {i}] (유사도: {sim_label})\n"
+        part += f"합격자 프로필: {profile_label}\n"
 
         # ── 시험 정보 상세 ──
         info_parts: List[str] = []
@@ -493,41 +547,50 @@ def build_mentoring_context(
         if style_parts:
             part += f"수험 스타일: {' | '.join(style_parts)}\n"
 
-        # ── 일일 학습 계획 (원문) ──
-        if r.get("daily_plan"):
-            plan = r["daily_plan"]
-            max_len = 2000 if include_details else 500
-            if len(plan) > max_len:
-                plan = plan[:max_len] + "..."
-            part += f"\n[일일 학습 계획]\n{plan}\n"
+        # ── 핵심 합격 전략 (우선 노출) ──
+        if r.get("key_points"):
+            kp = r["key_points"]
+            max_kp = 1000 if include_details else 250
+            if len(kp) > max_kp:
+                kp = kp[:max_kp] + "..."
+            part += f"\n[핵심 합격 전략]\n{kp}\n"
 
-        # ── 과목별 학습법 (전체 포함) ──
+        # ── 과목별 학습법 (교재·강사 정보 포함) ──
         subject_methods = r.get("subject_methods") or {}
         if isinstance(subject_methods, dict) and subject_methods:
             part += "\n[과목별 학습법]\n"
             for subj, method in subject_methods.items():
-                if method and isinstance(method, str) and len(method.strip()) > 5:
-                    m = method.strip()
-                    max_method = 800 if include_details else 250
-                    if len(m) > max_method:
-                        m = m[:max_method] + "..."
-                    part += f"  • {subj}: {m}\n"
+                if not method or not isinstance(method, str) or len(method.strip()) <= 5:
+                    continue
+                m = method.strip()
+                if include_details:
+                    # include_details 모드: 전체 텍스트
+                    if len(m) > 800:
+                        m = m[:800] + "..."
+                elif target_subject and subj in ("전체", "전체 학습법"):
+                    # 질문에 특정 과목이 있고 [전체] 키인 경우 → 해당 과목 섹션만 추출
+                    m = _extract_subject_section(m, target_subject, max_chars=400)
+                    subj = target_subject  # 키 이름도 해당 과목으로 변경
+                else:
+                    if len(m) > 200:
+                        m = m[:200] + "..."
+                part += f"  • {subj}: {m}\n"
+
+        # ── 일일 학습 계획 (요약만) ──
+        if r.get("daily_plan"):
+            plan = r["daily_plan"]
+            max_len = 2000 if include_details else 150
+            if len(plan) > max_len:
+                plan = plan[:max_len] + "..."
+            part += f"\n[일일 학습 계획]\n{plan}\n"
 
         # ── 어려웠던 점과 극복 방법 ──
         if r.get("difficulties"):
             diff = r["difficulties"]
-            max_diff = 1000 if include_details else 300
+            max_diff = 1000 if include_details else 200
             if len(diff) > max_diff:
                 diff = diff[:max_diff] + "..."
             part += f"\n[어려웠던 점과 극복 방법]\n{diff}\n"
-
-        # ── 핵심 전략 ──
-        if r.get("key_points"):
-            kp = r["key_points"]
-            max_kp = 1000 if include_details else 300
-            if len(kp) > max_kp:
-                kp = kp[:max_kp] + "..."
-            part += f"\n[핵심 합격 전략]\n{kp}\n"
 
         # ── 면접 준비 (있으면) ──
         if include_details and r.get("interview_prep"):
@@ -708,11 +771,14 @@ def build_mentoring_prompt(
         "아래 제공된 합격자 수기를 바탕으로, 사용자의 질문에 "
         "따뜻하고 구체적인 학습 조언을 해주세요.\n",
         "규칙:\n"
-        "1. 합격자 수기의 내용을 바탕으로 답변하되, 자연스럽게 재구성해서 답하세요.\n"
+        "1. 합격자 수기의 내용(교재명·강사명·학습법 등)을 최대한 구체적으로 반영하여 자연스럽게 재구성하세요.\n"
         "2. 수기에 없는 내용은 추측하지 말고 \"추가 정보가 필요합니다\"라고 안내하세요.\n"
-        "3. 공무원 시험 준비에 실질적으로 도움이 되는 조언을 우선해주세요.\n"
+        "3. 공무원 시험 준비에 실질적으로 도움이 되는 조언을 우선하세요.\n"
         "4. 이전 대화 맥락이 있으면 자연스럽게 이어서 답변하세요.\n"
-        "5. 답변은 한국어로 작성하세요.\n",
+        "5. 마크다운 헤더(###, ##)는 사용하지 말고 자연스러운 문장으로 작성하세요.\n"
+        "6. 반드시 완전한 문장으로 끝내세요 (문장 중간에 끊기지 않도록).\n"
+        "7. 합격자를 언급할 때는 '합격자 프로필'에 명시된 내용(예: '2025년 국가직 9급 세무직 합격자')을 사용하고, 출처 플랫폼명(megagong 등)은 절대 사용하지 마세요.\n"
+        "8. 답변은 한국어로 작성하세요.\n",
     ]
 
     # ── 이전 대화 요약 ──
@@ -742,7 +808,7 @@ def build_mentoring_prompt(
     # ── 현재 질문 ──
     parts.append(
         f"===== 사용자 질문 =====\n{question}\n\n"
-        "위 합격 수기를 바탕으로 사용자의 질문에 답변해주세요:"
+        "위 합격 수기를 바탕으로 구체적이고 따뜻하게 답변해주세요 (반드시 완전한 문장으로 끝낼 것):"
     )
 
     return "\n".join(parts)
@@ -804,10 +870,13 @@ def generate_mentoring_answer_with_exaone(
     context_summary: str = "",
 ) -> str:
     """EXAONE LLM을 사용하여 멘토링 RAG 답변을 생성합니다."""
-    # CPU 환경 응답 지연을 줄이기 위해 컨텍스트를 축약합니다.
-    context = build_mentoring_context(results, max_results=3, include_details=False)
-    if len(context) > 3000:
-        context = context[:3000] + "..."
+    # 입력이 길수록 prefill 시간이 증가하므로 컨텍스트를 압축합니다.
+    # question을 전달해 해당 과목 섹션을 우선 추출합니다.
+    context = build_mentoring_context(
+        results, max_results=2, include_details=False, question=question
+    )
+    if len(context) > 1000:
+        context = context[:1000] + "..."
     if not context:
         return generate_mentoring_answer_raw(question, results)
 
@@ -830,13 +899,16 @@ def generate_mentoring_answer_with_exaone(
             max_time=_MENTORING_GENERATION_MAX_TIME_SEC,
         )
 
+    # with 컨텍스트 매니저를 사용하면 FutureTimeoutError 발생 후에도
+    # executor.__exit__ → shutdown(wait=True) 로 스레드 종료를 기다린다.
+    # 따라서 컨텍스트 매니저 없이 생성하고, 타임아웃 시 shutdown(wait=False) 로 즉시 포기.
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(_run_generate)
     try:
-        # max_time가 라이브러리 버전에 따라 완전히 보장되지 않을 수 있어
-        # Future timeout으로 상한을 한 번 더 강제한다.
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_run_generate)
-            answer = future.result(timeout=_MENTORING_EXAONE_CALL_TIMEOUT_SEC)
+        answer = future.result(timeout=_MENTORING_EXAONE_CALL_TIMEOUT_SEC)
+        executor.shutdown(wait=False)
     except FutureTimeoutError:
+        executor.shutdown(wait=False, cancel_futures=True)
         elapsed = time.time() - started_at
         logger.warning(
             "[MentoringRAG] EXAONE 생성 타임아웃 - raw 폴백 "
@@ -845,6 +917,29 @@ def generate_mentoring_answer_with_exaone(
         return generate_mentoring_answer_raw(question, results)
 
     elapsed = time.time() - started_at
+
+    # ── EXAONE 출력 마크다운 정제 ──
+    import re as _re
+
+    # 헤더 제거: ### 텍스트: → 텍스트:
+    answer = _re.sub(r'^#{1,3}\s*', '', answer, flags=_re.MULTILINE)
+    # 볼드/이탤릭 제거: **text** → text
+    answer = _re.sub(r'\*{1,2}([^*\n]+)\*{1,2}', r'\1', answer)
+    # 불릿 제거: - 텍스트 → 텍스트 (줄 시작 하이픈)
+    answer = _re.sub(r'^\s*[-•]\s+', '', answer, flags=_re.MULTILINE)
+    # 연속 빈줄 정리
+    answer = _re.sub(r'\n{3,}', '\n\n', answer).strip()
+
+    # ── 문장이 중간에 잘렸으면 마지막 완전한 문장까지만 반환 ──
+    # 한국어 문장 종결: "다.", "요.", "다!", "요!", "다?", "다\n", "습니다." 등
+    last_end = -1
+    for m in _re.finditer(r'(?:습니다|입니다|합니다|됩니다|드립니다|겠습니다|바랍니다)[.!]'
+                          r'|(?:[다요])[.!]'
+                          r'|\.$', answer):
+        last_end = m.end()
+    # 응답의 70% 이상 지점에서 완전한 문장 종결을 찾은 경우에만 자르기
+    if 0 < last_end < len(answer) and last_end >= len(answer) * 0.6:
+        answer = answer[:last_end].strip()
 
     # max_time에 걸리거나 모델 이상으로 의미 있는 답변이 생성되지 않으면 즉시 폴백
     if not answer or answer.strip() in ("응답을 생성하지 못했습니다.",):

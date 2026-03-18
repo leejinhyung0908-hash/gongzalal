@@ -174,7 +174,8 @@ def rewrite_query_with_llm(
     prompt = (
         "당신은 검색 쿼리 최적화 전문가입니다.\n"
         "아래 대화 맥락과 현재 질문을 보고, "
-        "벡터 검색에 적합한 독립적인 검색 쿼리를 한 문장으로 작성하세요.\n\n"
+        "벡터 검색에 적합한 독립적인 검색 쿼리를 한 문장으로 작성하세요.\n"
+        "규칙: 마크다운(**,##,\"\") 없이 평문 한국어로만 작성하세요.\n\n"
         f"[대화 맥락 요약]\n{context_summary or '없음'}\n\n"
         f"[최근 대화]\n{history_text}\n\n"
         f"[현재 질문]\n{current_question}\n\n"
@@ -188,6 +189,10 @@ def rewrite_query_with_llm(
             temperature=0.3,
             top_p=0.9,
         ).strip()
+
+        # 마크다운 포맷 제거 (**"..."**, ##, 따옴표 등)
+        import re
+        rewritten = re.sub(r'\*+|#+|"', '', rewritten).strip()
 
         # 빈 결과이거나 너무 짧으면 규칙 기반 폴백
         if not rewritten or len(rewritten) < 5:

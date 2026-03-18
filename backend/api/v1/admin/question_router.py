@@ -619,6 +619,15 @@ async def serve_question_image(
     file_path_str = row[0].replace("\\", "/")
     image_type = row[1] or "webp"
 
+    # S3 URL인 경우 바로 리다이렉트 (경로 내 공백/한글 등 URL 인코딩)
+    if file_path_str.startswith("https://") or file_path_str.startswith("http://"):
+        from fastapi.responses import RedirectResponse
+        from urllib.parse import quote, urlparse, urlunparse
+        parsed = urlparse(file_path_str)
+        encoded_path = quote(parsed.path, safe="/")
+        encoded_url = urlunparse(parsed._replace(path=encoded_path))
+        return RedirectResponse(url=encoded_url, status_code=302)
+
     # yolo_quiz 기준 경로 탐색
     candidates = [
         _PROJECT_ROOT / "yolo_quiz" / file_path_str,
