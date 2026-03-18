@@ -83,11 +83,9 @@ export const authFetch = async (
                 // 원래 요청 재시도
                 response = await fetch(url, fetchOptions);
             } else {
-                // Refresh 실패 → 로그인 페이지로 이동
-                console.warn("[Auth] Refresh 실패 → 로그인 필요");
-                if (typeof window !== "undefined") {
-                    window.location.href = "/login";
-                }
+                // Refresh 실패 → 게스트 상태로 계속 (자동 리다이렉트 없음)
+                // 상위 호출 코드에서 null user 를 처리하여 게스트 모드로 동작
+                console.warn("[Auth] Refresh 실패 - 게스트 상태로 계속");
             }
         } else {
             // 이미 refresh 진행 중 → 완료될 때까지 대기

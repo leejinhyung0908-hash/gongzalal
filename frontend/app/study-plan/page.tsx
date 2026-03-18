@@ -268,8 +268,11 @@ type PlanJson = {
 // 메인 컴포넌트
 // ============================================================================
 
+const GUEST_PROFILE_KEY = "gja_guest_profile";
+
 export default function StudyPlanPage() {
     const { user: loggedInUser, loading: userLoading } = useUser();
+    const isGuest = !userLoading && !loggedInUser;
     const [userId, setUserId] = useState("");
     const [analysis, setAnalysis] = useState<Analysis | null>(null);
     const [planJson, setPlanJson] = useState<PlanJson | null>(null);
@@ -284,6 +287,8 @@ export default function StudyPlanPage() {
 
     // 로그인된 사용자 ID 자동 설정 + 프로필 설정 여부 확인
     useEffect(() => {
+        if (userLoading) return;
+
         if (loggedInUser?.id) {
             setUserId(String(loggedInUser.id));
             // 프로필 설정 여부 확인
@@ -312,8 +317,27 @@ export default function StudyPlanPage() {
                     // 프로필 확인 실패 시 비활성 유지
                 }
             })();
+        } else {
+            // 게스트: localStorage에서 프로필 설정 여부 확인
+            try {
+                const raw = localStorage.getItem(GUEST_PROFILE_KEY);
+                if (raw) {
+                    const g = JSON.parse(raw);
+                    const hasProfile = !!(
+                        g.target_position ||
+                        g.employment_status ||
+                        g.is_first_timer !== null ||
+                        g.study_duration ||
+                        (g.weak_subjects && String(g.weak_subjects).trim()) ||
+                        (g.strong_subjects && String(g.strong_subjects).trim())
+                    );
+                    setIsProfileSet(hasProfile);
+                }
+            } catch { /* 무시 */ }
+            // 게스트는 userId를 "guest"로 설정
+            setUserId("guest");
         }
-    }, [loggedInUser]);
+    }, [userLoading, loggedInUser]);
 
     const handleLogout = () => {
         logout(); // 백엔드 리다이렉트로 쿠키 삭제 + /login 이동
@@ -321,6 +345,11 @@ export default function StudyPlanPage() {
 
     // 풀이 로그 분석만
     const handleAnalyze = async () => {
+        // 게스트는 DB 풀이 기록이 없음
+        if (isGuest) {
+            setError("게스트 모드에서는 저장된 풀이 기록이 없습니다. 가상 모의고사를 풀고 로그인하면 분석이 가능합니다.");
+            return;
+        }
         setIsAnalyzing(true);
         setError(null);
         try {
@@ -405,6 +434,11 @@ export default function StudyPlanPage() {
 
     // 기존 학습 계획 조회
     const handleLoadPlan = async () => {
+        // 게스트는 저장된 학습 계획 없음
+        if (isGuest) {
+            setError("게스트 모드에서는 저장된 학습 계획이 없습니다. 로그인 후 AI 플랜을 생성하면 저장됩니다.");
+            return;
+        }
         setIsLoadingPlan(true);
         setError(null);
         try {
@@ -452,9 +486,29 @@ export default function StudyPlanPage() {
                 </div>
                 <div className="header-right">
                     <a href="/" className="home-link">홈</a>
-                    <button onClick={handleLogout} className="logout-link">로그아웃</button>
+                    {!isGuest && <button onClick={handleLogout} className="logout-link">로그아웃</button>}
+                    {isGuest && <a href="/login" className="logout-link" style={{ color: "rgba(251,191,36,0.7)" }}>로그인하기</a>}
                 </div>
             </header>
+
+            {/* 게스트 안내 */}
+            {isGuest && (
+                <div style={{
+                    display: "flex", alignItems: "center", gap: "10px",
+                    padding: "10px 32px",
+                    background: "rgba(251,191,36,0.05)",
+                    borderBottom: "1px solid rgba(251,191,36,0.1)",
+                    fontSize: "0.78rem",
+                }}>
+                    <span>👤</span>
+                    <span style={{ color: "rgba(251,191,36,0.75)", flex: 1 }}>
+                        게스트 모드 — 풀이 기록이 저장되지 않아 분석 기능이 제한됩니다. 사용자 정보를 먼저 설정하면 프로필 기반 AI 플랜을 생성할 수 있습니다.
+                    </span>
+                    <a href="/user" style={{ color: "rgba(251,191,36,0.9)", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
+                        프로필 설정 →
+                    </a>
+                </div>
+            )}
 
             {/* 사용자 선택 + 액션 버튼 */}
             <div className="action-bar">

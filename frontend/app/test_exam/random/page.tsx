@@ -415,6 +415,14 @@ function RandomExamPageContent() {
         finalQuestionTimes: number[],
     ) => {
         if (logsSaved || savingLogs || images.length === 0) return;
+
+        // 게스트(비로그인): DB 저장 없이 바로 완료 처리
+        if (!loggedInUser?.id) {
+            console.log("[SolvingLogs] 게스트 모드 - DB 저장 건너뜀");
+            setLogsSaved(true);
+            return;
+        }
+
         setSavingLogs(true);
         try {
             const expandedLogs = images.flatMap((img, idx) => {
@@ -448,7 +456,7 @@ function RandomExamPageContent() {
             const res = await fetch(`${backendUrl}/api/v1/admin/solving-logs/batch`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: loggedInUser?.id ?? 1, logs }),
+                body: JSON.stringify({ user_id: loggedInUser.id, logs }),
             });
 
             if (res.ok) {
@@ -463,7 +471,7 @@ function RandomExamPageContent() {
         } finally {
             setSavingLogs(false);
         }
-    }, [images, selectedAnswersByQuestionId, backendUrl, logsSaved, savingLogs]);
+    }, [images, selectedAnswersByQuestionId, backendUrl, logsSaved, savingLogs, loggedInUser?.id]);
 
     // ── 다시 시작 ──
     const restart = () => {
@@ -1027,15 +1035,18 @@ function RandomExamPageContent() {
 
                             {/* 풀이 기록 저장 상태 */}
                             <div className="save-status" style={{ textAlign: "center", margin: "12px 0 4px" }}>
-                                {savingLogs && (
+                                {!loggedInUser?.id ? (
+                                    <span style={{ color: "rgba(251,191,36,0.7)", fontSize: "0.82rem" }}>
+                                        👤 게스트 모드 — 풀이 기록이 저장되지 않습니다.{" "}
+                                        <a href="/login" style={{ color: "rgba(251,191,36,0.95)", textDecoration: "underline" }}>로그인하기</a>
+                                    </span>
+                                ) : savingLogs ? (
                                     <span style={{ color: "#a0a0a0", fontSize: "0.85rem" }}>풀이 기록 저장 중...</span>
-                                )}
-                                {logsSaved && (
+                                ) : logsSaved ? (
                                     <span style={{ color: "#22c55e", fontSize: "0.85rem" }}>✅ 풀이 기록이 저장되었습니다</span>
-                                )}
-                                {!savingLogs && !logsSaved && isFinished && (
+                                ) : isFinished ? (
                                     <span style={{ color: "#ef4444", fontSize: "0.85rem" }}>⚠️ 풀이 기록 저장 실패 — <button onClick={() => saveSolvingLogs(questionTimes)} style={{ color: "#3b82f6", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", fontSize: "0.85rem" }}>다시 시도</button></span>
-                                )}
+                                ) : null}
                             </div>
 
                             <p className="review-hint">문제를 클릭하면 다시 확인할 수 있습니다</p>

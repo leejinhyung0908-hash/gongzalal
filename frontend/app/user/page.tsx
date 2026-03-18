@@ -52,11 +52,33 @@ type UserProfile = {
 };
 
 // ============================================================================
+// 게스트 프로필 localStorage 키
+// ============================================================================
+
+const GUEST_PROFILE_KEY = "gja_guest_profile";
+
+function loadGuestProfile(): Partial<UserProfile> {
+    if (typeof window === "undefined") return {};
+    try {
+        const raw = localStorage.getItem(GUEST_PROFILE_KEY);
+        if (raw) return JSON.parse(raw);
+    } catch { /* 무시 */ }
+    return {};
+}
+
+function saveGuestProfile(data: Partial<UserProfile>): void {
+    try {
+        localStorage.setItem(GUEST_PROFILE_KEY, JSON.stringify(data));
+    } catch { /* 무시 */ }
+}
+
+// ============================================================================
 // 메인 컴포넌트
 // ============================================================================
 
 function UserProfilePageContent() {
     const { user: loggedInUser, loading: userLoading } = useUser();
+    const isGuest = !userLoading && !loggedInUser;
 
     // 프로필 데이터
     const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -115,11 +137,26 @@ function UserProfilePageContent() {
     };
 
     useEffect(() => {
+        if (userLoading) return;
         if (loggedInUser?.id) {
             fetchProfile();
+        } else {
+            // 게스트: localStorage에서 프로필 로드
+            const guestData = loadGuestProfile();
+            if (Object.keys(guestData).length > 0) {
+                setFormAge(guestData.age != null ? String(guestData.age) : "");
+                setFormEmployment(guestData.employment_status || "");
+                setFormFirstTimer(guestData.is_first_timer === true ? "true" : guestData.is_first_timer === false ? "false" : "");
+                setFormStudyDuration(guestData.study_duration || "");
+                setFormTargetPosition(guestData.target_position || "");
+                setFormWeakSubjects(guestData.weak_subjects ? guestData.weak_subjects.split(",").map(s => s.trim()).filter(Boolean) : []);
+                setFormStrongSubjects(guestData.strong_subjects ? guestData.strong_subjects.split(",").map(s => s.trim()).filter(Boolean) : []);
+            }
+            setIsEditing(false);
+            setProfileLoading(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loggedInUser?.id]);
+    }, [userLoading, loggedInUser?.id]);
 
     // URL 쿼리에서 연동 결과 확인
     useEffect(() => {
@@ -202,9 +239,30 @@ function UserProfilePageContent() {
 
     // 저장
     const handleSave = async () => {
-        if (!loggedInUser?.id) return;
         setIsSaving(true);
         setSaveMessage(null);
+
+        // 게스트: localStorage에 저장
+        if (!loggedInUser?.id) {
+            try {
+                const guestData: Partial<UserProfile> = {
+                    age: formAge ? parseInt(formAge) : null,
+                    employment_status: formEmployment || null,
+                    is_first_timer: formFirstTimer === "true" ? true : formFirstTimer === "false" ? false : null,
+                    study_duration: formStudyDuration || null,
+                    target_position: formTargetPosition || null,
+                    weak_subjects: formWeakSubjects.length > 0 ? formWeakSubjects.join(",") : null,
+                    strong_subjects: formStrongSubjects.length > 0 ? formStrongSubjects.join(",") : null,
+                };
+                saveGuestProfile(guestData);
+                setSaveMessage("임시 저장 완료! (로그인 시 DB에 저장됩니다)");
+                setIsEditing(false);
+            } finally {
+                setIsSaving(false);
+            }
+            return;
+        }
+
         try {
             // 항상 모든 필드를 전송 — 빈 값은 null 로 보내 DB 에서 클리어
             const body: Record<string, unknown> = {
@@ -281,11 +339,84 @@ function UserProfilePageContent() {
                         <div className="loading-spinner" />
                         <p>사용자 정보를 불러오는 중...</p>
                     </div>
-                ) : !loggedInUser ? (
-                    <div className="empty-state">
-                        <p>로그인이 필요합니다.</p>
-                        <a href="/login" className="login-btn">로그인하기</a>
-                    </div>
+                ) : isGuest ? (
+                    /* ── 게스트 모드: 임시 프로필 입력 폼 ── */
+                    <>
+                        <div className="guest-notice-card">
+                            <span className="guest-notice-icon">👤</span>
+                            <div className="guest-notice-body">
+                                <p className="guest-notice-title">게스트 모드</p>
+                                <p className="guest-notice-desc">
+                                    프로필을 입력하면 브라우저에 임시 저장됩니다. 로그인하면 DB에 영구 저장되며 AI 플랜 정확도가 높아집니다.
+                                </p>
+                            </div>
+                            <a href="/login" className="guest-login-btn">로그인하기 →</a>
+                        </div>
+                        {/* 게스트 프로필 편집 폼 (항상 편집 모드) */}
+                        <div className="card">
+                            <div className="card-header">
+                                <h3 className="card-title">📋 학습 프로필 (임시)</h3>
+                            </div>
+                            {saveMessage && (
+                                <div className={`save-message ${saveMessage.includes("완료") ? "success" : "error"}`}>
+                                    {saveMessage}
+                                </div>
+                            )}
+                            <div className="form-grid">
+                                <div className="form-field">
+                                    <label className="form-label">나이</label>
+                                    <input type="number" className="form-input" value={formAge} onChange={e => setFormAge(e.target.value)} placeholder="예) 25" min="18" max="60" />
+                                </div>
+                                <div className="form-field">
+                                    <label className="form-label">직장 여부</label>
+                                    <select className="form-select" value={formEmployment} onChange={e => setFormEmployment(e.target.value)}>
+                                        <option value="">선택</option>
+                                        {EMPLOYMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                    </select>
+                                </div>
+                                <div className="form-field">
+                                    <label className="form-label">초시 여부</label>
+                                    <select className="form-select" value={formFirstTimer} onChange={e => setFormFirstTimer(e.target.value)}>
+                                        <option value="">선택</option>
+                                        <option value="true">초시생</option>
+                                        <option value="false">재시생</option>
+                                    </select>
+                                </div>
+                                <div className="form-field">
+                                    <label className="form-label">합격 목표 기간</label>
+                                    <input type="text" className="form-input" value={formStudyDuration} onChange={e => setFormStudyDuration(e.target.value)} placeholder="예) 6개월, 1년" />
+                                </div>
+                                <div className="form-field full-width">
+                                    <label className="form-label">목표 직렬</label>
+                                    <div className="chips-grid">
+                                        {POSITIONS.map(p => (
+                                            <button key={p} type="button" className={`chip ${formTargetPosition === p ? "chip-active" : ""}`} onClick={() => setFormTargetPosition(formTargetPosition === p ? "" : p)}>{p}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="form-field full-width">
+                                    <label className="form-label">취약 과목 (복수 선택)</label>
+                                    <div className="chips-grid">
+                                        {SUBJECTS.map(s => (
+                                            <button key={s} type="button" className={`chip chip-weak ${formWeakSubjects.includes(s) ? "chip-active" : ""}`} onClick={() => toggleSubject(s, formWeakSubjects, setFormWeakSubjects)}>{s}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="form-field full-width">
+                                    <label className="form-label">강점 과목 (복수 선택)</label>
+                                    <div className="chips-grid">
+                                        {SUBJECTS.map(s => (
+                                            <button key={s} type="button" className={`chip chip-strong ${formStrongSubjects.includes(s) ? "chip-active" : ""}`} onClick={() => toggleSubject(s, formStrongSubjects, setFormStrongSubjects)}>{s}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="form-actions">
+                                <button onClick={handleReset} className="btn-reset" disabled={isSaving}>초기화</button>
+                                <button onClick={handleSave} className="btn-save" disabled={isSaving}>{isSaving ? "저장 중..." : "임시 저장"}</button>
+                            </div>
+                        </div>
+                    </>
                 ) : (
                     <>
                         {/* ── 프로필 카드 ── */}
@@ -293,12 +424,12 @@ function UserProfilePageContent() {
                             <div className="profile-top">
                                 <div className="avatar">
                                     <span className="avatar-text">
-                                        {loggedInUser.display_name?.charAt(0) || "?"}
+                                        {loggedInUser?.display_name?.charAt(0) || "?"}
                                     </span>
                                 </div>
                                 <div className="profile-info">
                                     <h2 className="profile-name">
-                                        {loggedInUser.display_name || "이름 없음"}
+                                        {loggedInUser?.display_name || "이름 없음"}
                                     </h2>
                                     <div className="profile-meta">
                                         {providerInfo && (
@@ -306,7 +437,7 @@ function UserProfilePageContent() {
                                                 {providerInfo.emoji} {providerInfo.label}
                                             </span>
                                         )}
-                                        <span className="id-badge">ID: {loggedInUser.id}</span>
+                                        <span className="id-badge">ID: {loggedInUser?.id}</span>
                                     </div>
                                 </div>
                             </div>
@@ -650,6 +781,44 @@ function UserProfilePageContent() {
                     margin: 0 auto 16px;
                 }
                 @keyframes spin { to { transform: rotate(360deg); } }
+
+                .guest-notice-card {
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
+                    padding: 16px 20px;
+                    background: rgba(251,191,36,0.06);
+                    border: 1px solid rgba(251,191,36,0.12);
+                    border-radius: 12px;
+                    margin-bottom: 16px;
+                }
+                .guest-notice-icon { font-size: 1.5rem; flex-shrink: 0; }
+                .guest-notice-body { flex: 1; }
+                .guest-notice-title {
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    color: rgba(251,191,36,0.9);
+                    margin: 0 0 4px;
+                }
+                .guest-notice-desc {
+                    font-size: 0.75rem;
+                    color: rgba(255,255,255,0.4);
+                    margin: 0;
+                    line-height: 1.5;
+                }
+                .guest-login-btn {
+                    flex-shrink: 0;
+                    padding: 8px 16px;
+                    background: rgba(251,191,36,0.1);
+                    border: 1px solid rgba(251,191,36,0.25);
+                    border-radius: 8px;
+                    color: rgba(251,191,36,0.9);
+                    font-size: 0.78rem;
+                    font-weight: 600;
+                    text-decoration: none;
+                    transition: background 0.2s;
+                }
+                .guest-login-btn:hover { background: rgba(251,191,36,0.18); }
 
                 .empty-state {
                     text-align: center;
