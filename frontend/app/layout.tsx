@@ -24,7 +24,11 @@ export const metadata: Metadata = {
         description: "공무원 시험, 잘 알려주는 AI",
     },
     icons: {
-        icon: [{ url: "/icons/gong_icon.png", type: "image/png" }],
+        icon: [
+            { url: "/favicon.ico", type: "image/x-icon" },
+            { url: "/icons/gong_icon.png", type: "image/png" },
+        ],
+        shortcut: [{ url: "/favicon.ico", type: "image/x-icon" }],
         apple: [{ url: "/icons/gong_icon.png", type: "image/png" }],
     },
 };
@@ -47,6 +51,9 @@ export default function RootLayout({
         <html lang="ko">
             <head>
                 <link rel="manifest" href="/manifest.json" />
+                <link rel="icon" href="/favicon.ico" />
+                <link rel="shortcut icon" href="/favicon.ico" />
+                <link rel="apple-touch-icon" href="/icons/gong_icon.png" />
                 <meta name="application-name" content="공잘알" />
                 <meta name="apple-mobile-web-app-capable" content="yes" />
                 <meta name="apple-mobile-web-app-status-bar-style" content="default" />

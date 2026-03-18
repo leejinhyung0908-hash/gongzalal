@@ -26,6 +26,15 @@ const nextConfig = {
   // 모바일 최적화를 위한 설정
   poweredByHeader: false,
   compress: true,
+  // Google/브라우저가 /favicon.ico를 우선 조회하는 경우 대응
+  async rewrites() {
+    return [
+      {
+        source: '/favicon.ico',
+        destination: '/icons/gong_icon.png',
+      },
+    ];
+  },
   // 반응형 라우팅 최적화
   async headers() {
     return [
