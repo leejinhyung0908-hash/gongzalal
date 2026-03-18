@@ -60,7 +60,7 @@ function loadThreadIdFromStorage(): string {
 
 /* ─── SVG 아이콘 ─── */
 const IcMenu = () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
         <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
     </svg>
 );
@@ -602,16 +602,16 @@ export default function ChatbotUI() {
                     flex-direction: row;
                     flex-wrap: nowrap;
                     align-items: center;
-                    gap: 12px;
-                    padding: 6px 4px 14px;
+                    gap: 14px;
+                    padding: 8px 6px 16px;
                     margin-bottom: 4px;
                     flex-shrink: 0;
                 }
                 .side-toggle {
                     flex-shrink: 0;
-                    width: 44px; height: 44px;
+                    width: 56px; height: 56px;
                     display: flex; align-items: center; justify-content: center;
-                    border: none; border-radius: 8px;
+                    border: none; border-radius: 12px;
                     background: transparent;
                     color: rgba(255,255,255,0.3);
                     cursor: pointer;
@@ -622,12 +622,12 @@ export default function ChatbotUI() {
                     background: rgba(255,255,255,0.06);
                 }
                 .side-logo {
-                    font-size: 1.75rem; font-weight: 900;
-                    color: rgba(255,255,255,0.95);
+                    font-size: 2.35rem; font-weight: 900;
+                    color: rgba(255,255,255,0.98);
                     text-decoration: none;
-                    letter-spacing: 0.02em;
+                    letter-spacing: 0.01em;
                     line-height: 1;
-                    text-shadow: 0 0 16px rgba(255,255,255,0.1);
+                    text-shadow: 0 0 24px rgba(255,255,255,0.14);
                     white-space: nowrap;
                     overflow: hidden;
                     flex-shrink: 1;
@@ -707,20 +707,22 @@ export default function ChatbotUI() {
                 /* ── 모바일 헤더 ── */
                 .mobile-header {
                     display: flex; align-items: center; justify-content: space-between;
-                    padding: 12px 14px;
+                    padding: 14px 16px;
                     border-bottom: 1px solid rgba(255,255,255,0.04);
                     background: rgba(0,0,0,0.7);
                     backdrop-filter: blur(12px);
                     flex-shrink: 0;
                 }
                 .mobile-logo {
-                    font-size: 1.2rem; font-weight: 900; color: #fff;
-                    text-decoration: none; letter-spacing: 0.05em;
+                    font-size: 1.9rem; font-weight: 900; color: #fff;
+                    text-decoration: none; letter-spacing: 0.01em;
+                    line-height: 1;
+                    text-shadow: 0 0 18px rgba(255,255,255,0.12);
                 }
                 .icon-btn {
-                    width: 40px; height: 40px;
+                    width: 52px; height: 52px;
                     display: flex; align-items: center; justify-content: center;
-                    border: none; border-radius: 8px;
+                    border: none; border-radius: 12px;
                     background: transparent; color: rgba(255,255,255,0.35);
                     cursor: pointer; transition: all 0.2s ease;
                 }
