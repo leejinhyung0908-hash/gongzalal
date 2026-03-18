@@ -416,47 +416,53 @@ function RandomExamPageContent() {
     ) => {
         if (logsSaved || savingLogs || images.length === 0) return;
 
-        // 게스트(비로그인): DB 저장 없이 바로 완료 처리
+        // 풀이 로그 공통 계산 (로그인/게스트 모두 사용)
+        const expandedLogs = images.flatMap((img, idx) => {
+            const mapped = getMappedQuestions(img);
+            const baseTime = finalQuestionTimes[idx] ?? 0;
+            const perQuestionTime = Math.max(0, Math.round(baseTime / Math.max(mapped.length, 1)));
+            return mapped.map((q) => {
+                const selected = getSelectedAnswer(q.question_id);
+                const status = classifyAnswer(selected, q.answer_key);
+                return {
+                    question_id: q.question_id,
+                    subject: img.subject || "",
+                    selected_answer: selected != null ? String(selected) : null,
+                    answer_key: q.answer_key,
+                    time_spent: perQuestionTime,
+                    is_correct: status === "correct",
+                    is_wrong_note: status === "wrong",
+                };
+            });
+        });
+        const logByQuestionId = new Map<number, typeof expandedLogs[0]>();
+        expandedLogs.forEach((log) => logByQuestionId.set(log.question_id, log));
+        const logs = Array.from(logByQuestionId.values());
+
+        // 게스트(비로그인): sessionStorage에 임시 저장
         if (!loggedInUser?.id) {
-            console.log("[SolvingLogs] 게스트 모드 - DB 저장 건너뜀");
+            try {
+                sessionStorage.setItem("gja_guest_solving_logs", JSON.stringify({
+                    logs,
+                    saved_at: new Date().toISOString(),
+                }));
+                console.log("[SolvingLogs] 게스트 모드 - sessionStorage에 임시 저장");
+            } catch { /* 무시 */ }
             setLogsSaved(true);
             return;
         }
 
         setSavingLogs(true);
         try {
-            const expandedLogs = images.flatMap((img, idx) => {
-                const mapped = getMappedQuestions(img);
-                const baseTime = finalQuestionTimes[idx] ?? 0;
-                const perQuestionTime = Math.max(0, Math.round(baseTime / Math.max(mapped.length, 1)));
-                return mapped.map((q) => {
-                    const selected = getSelectedAnswer(q.question_id);
-                    const status = classifyAnswer(selected, q.answer_key);
-                    return {
-                        question_id: q.question_id,
-                        selected_answer: selected != null ? String(selected) : null,
-                        time_spent: perQuestionTime,
-                        is_wrong_note: status === "wrong",
-                    };
-                });
-            });
-
-            // 동일 question_id 중복 저장 방지 (마지막 값 우선)
-            const logByQuestionId = new Map<number, {
-                question_id: number;
-                selected_answer: string | null;
-                time_spent: number;
-                is_wrong_note: boolean;
-            }>();
-            expandedLogs.forEach((log) => {
-                logByQuestionId.set(log.question_id, log);
-            });
-            const logs = Array.from(logByQuestionId.values());
+            // DB 저장용 로그 (subject, answer_key, is_correct 제외)
+            const dbLogs = logs.map(({ question_id, selected_answer, time_spent, is_wrong_note }) => ({
+                question_id, selected_answer, time_spent, is_wrong_note,
+            }));
 
             const res = await fetch(`${backendUrl}/api/v1/admin/solving-logs/batch`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: loggedInUser.id, logs }),
+                body: JSON.stringify({ user_id: loggedInUser.id, logs: dbLogs }),
             });
 
             if (res.ok) {

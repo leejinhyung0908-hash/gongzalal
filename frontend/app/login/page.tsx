@@ -200,10 +200,20 @@ export default function LoginPage() {
                 </div>
 
                 {/* 게스트 입장 버튼 */}
-                <a href="/chat" className="guest-btn">
+                <button
+                    className="guest-btn"
+                    onClick={() => {
+                        if (isLoggedIn) {
+                            // 로그인 상태: 먼저 로그아웃 후 /chat으로 이동
+                            window.location.href = `${API_BASE_URL}/api/auth/logout?next=/chat`;
+                        } else {
+                            window.location.href = "/chat";
+                        }
+                    }}
+                >
                     <span className="guest-btn-text">게스트로 입장하기</span>
                     <span className="guest-btn-line" />
-                </a>
+                </button>
 
                 <div className="login-footer">
                     <a href="/" className="footer-link">메인으로</a>
