@@ -155,10 +155,12 @@ function SideItem({
         fontSize: "0.93rem",
         fontFamily: "inherit",
         letterSpacing: "0.02em",
+        lineHeight: 1.25,
         textAlign: "left",
         textDecoration: "none",
         cursor: "pointer",
         whiteSpace: "nowrap",
+        wordBreak: "keep-all",
         overflow: "hidden",
         flexShrink: 0,
         transition: "background 0.15s ease, color 0.15s ease",
@@ -179,8 +181,10 @@ function SideItem({
         overflow: "hidden",
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",
+        wordBreak: "keep-all",
         flex: 1,
         minWidth: 0,
+        display: "block",
     };
 
     const content = (
@@ -242,6 +246,7 @@ export default function ChatbotUI() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isInfoOpen, setIsInfoOpen] = useState(false);
+    const [isNewChatHover, setIsNewChatHover] = useState(false);
 
     /* 사이드바 상태 */
     const [sideExpanded, setSideExpanded] = useState(true);   // 데스크톱: 펼침/접힘
@@ -351,14 +356,47 @@ export default function ChatbotUI() {
 
             {/* 새 대화 버튼 */}
             <button
-                className={`side-new-chat ${showExpanded ? "" : "side-new-chat-icon"}`}
                 onClick={handleNewChat}
                 title={!showExpanded ? "새 대화" : undefined}
+                onMouseEnter={() => setIsNewChatHover(true)}
+                onMouseLeave={() => setIsNewChatHover(false)}
+                style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    flexWrap: "nowrap",
+                    alignItems: "center",
+                    justifyContent: showExpanded ? "flex-start" : "center",
+                    gap: showExpanded ? "12px" : 0,
+                    width: "100%",
+                    padding: showExpanded ? "11px 14px" : "10px",
+                    border: "1px solid",
+                    borderColor: isNewChatHover ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.08)",
+                    borderRadius: "9px",
+                    background: isNewChatHover ? "rgba(255,255,255,0.05)" : "transparent",
+                    color: isNewChatHover ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.5)",
+                    fontSize: "0.92rem",
+                    fontFamily: "inherit",
+                    letterSpacing: "0.01em",
+                    lineHeight: 1.2,
+                    whiteSpace: "nowrap",
+                    wordBreak: "keep-all",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    cursor: "pointer",
+                    boxSizing: "border-box",
+                    marginBottom: "16px",
+                    transition: "background 0.15s ease, color 0.15s ease, border-color 0.15s ease",
+                    flexShrink: 0,
+                }}
             >
-                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, width: 16, height: 16 }}>
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, width: 18, height: 18 }}>
                     <IcPencil />
                 </span>
-                {showExpanded && <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>새 대화</span>}
+                {showExpanded && (
+                    <span style={{ whiteSpace: "nowrap", wordBreak: "keep-all", overflow: "hidden", textOverflow: "ellipsis", display: "block", minWidth: 0, flex: 1 }}>
+                        새 대화
+                    </span>
+                )}
             </button>
 
             {/* 상단 내비 */}
@@ -528,9 +566,9 @@ export default function ChatbotUI() {
 
                 /* ── 사이드바 ── */
                 .sidebar {
-                    width: 304px;
-                    min-width: 304px;
-                    max-width: 304px;
+                    width: 332px;
+                    min-width: 332px;
+                    max-width: 332px;
                     height: 100vh;
                     background: #0d0d0d;
                     border-right: 1px solid rgba(255,255,255,0.06);
@@ -552,9 +590,9 @@ export default function ChatbotUI() {
                     position: fixed;
                     left: 0; top: 0; bottom: 0;
                     z-index: 200;
-                    width: min(86vw, 304px);
+                    width: min(88vw, 332px);
                     min-width: 0;
-                    max-width: 304px;
+                    max-width: 332px;
                     box-shadow: 8px 0 32px rgba(0,0,0,0.7);
                 }
 
