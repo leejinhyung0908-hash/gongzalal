@@ -3,6 +3,11 @@
 import { useState, useEffect } from "react";
 import { logout, API_BASE_URL, authFetch } from "@/lib/auth-api";
 import { useUser } from "@/lib/hooks/useUser";
+import {
+    GUEST_PROFILE_KEY,
+    GUEST_SOLVING_LOGS_KEY,
+    isGuestEntryActive,
+} from "@/lib/guest-session";
 
 // ============================================================================
 // 타입 정의
@@ -270,6 +275,9 @@ type PlanJson = {
 
 export default function StudyPlanPage() {
     const { user: loggedInUser, loading: userLoading } = useUser();
+    const [guestEntry, setGuestEntry] = useState(false);
+    const isGuest = !userLoading && !loggedInUser && guestEntry;
+
     const [userId, setUserId] = useState("");
     const [analysis, setAnalysis] = useState<Analysis | null>(null);
     const [planJson, setPlanJson] = useState<PlanJson | null>(null);
@@ -282,11 +290,19 @@ export default function StudyPlanPage() {
     const [activeTab, setActiveTab] = useState<"analysis" | "plan">("analysis");
     const [isProfileSet, setIsProfileSet] = useState(false);
 
+    useEffect(() => {
+        try {
+            setGuestEntry(isGuestEntryActive());
+        } catch {
+            setGuestEntry(false);
+        }
+    }, []);
+
     // 로그인된 사용자 ID 자동 설정 + 프로필 설정 여부 확인
     useEffect(() => {
+        if (userLoading) return;
         if (loggedInUser?.id) {
             setUserId(String(loggedInUser.id));
-            // 프로필 설정 여부 확인
             (async () => {
                 try {
                     const res = await authFetch(
@@ -296,7 +312,6 @@ export default function StudyPlanPage() {
                         const data = await res.json();
                         if (data.success && data.user) {
                             const u = data.user;
-                            // 핵심 프로필 필드가 하나라도 설정되어 있으면 true
                             const hasProfile = !!(
                                 u.target_position ||
                                 u.employment_status ||
@@ -309,18 +324,117 @@ export default function StudyPlanPage() {
                         }
                     }
                 } catch {
-                    // 프로필 확인 실패 시 비활성 유지
+                    /* ignore */
                 }
             })();
+            return;
         }
-    }, [loggedInUser]);
+        if (isGuest) {
+            setUserId("guest");
+            try {
+                const raw = localStorage.getItem(GUEST_PROFILE_KEY);
+                if (raw) {
+                    const g = JSON.parse(raw);
+                    const hasProfile = !!(
+                        g.target_position ||
+                        g.employment_status ||
+                        g.is_first_timer !== null ||
+                        g.study_duration ||
+                        (g.weak_subjects && String(g.weak_subjects).trim()) ||
+                        (g.strong_subjects && String(g.strong_subjects).trim())
+                    );
+                    setIsProfileSet(hasProfile);
+                }
+            } catch {
+                /* ignore */
+            }
+        }
+    }, [userLoading, loggedInUser, isGuest]);
 
     const handleLogout = () => {
         logout(); // 백엔드 리다이렉트로 쿠키 삭제 + /login 이동
     };
 
+    const loadGuestLogs = () => {
+        try {
+            const raw = sessionStorage.getItem(GUEST_SOLVING_LOGS_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw) as { logs?: unknown };
+            return parsed.logs as Array<{
+                question_id: number;
+                subject: string;
+                selected_answer: string | null;
+                answer_key: string | null;
+                time_spent: number;
+                is_correct: boolean;
+                is_wrong_note: boolean;
+            }> | null;
+        } catch {
+            return null;
+        }
+    };
+
+    const computeGuestAnalysis = (
+        logs: NonNullable<ReturnType<typeof loadGuestLogs>>,
+    ): Analysis | null => {
+        if (!logs?.length) return null;
+        const subjectMap: Record<string, { total: number; correct: number; time: number }> = {};
+        logs.forEach((l) => {
+            const s = l.subject || "기타";
+            if (!subjectMap[s]) subjectMap[s] = { total: 0, correct: 0, time: 0 };
+            subjectMap[s].total++;
+            if (l.is_correct) subjectMap[s].correct++;
+            subjectMap[s].time += l.time_spent;
+        });
+        const total = logs.length;
+        const correct = logs.filter((l) => l.is_correct).length;
+        const totalTime = logs.reduce((s, l) => s + l.time_spent, 0);
+        const subjectStats = Object.entries(subjectMap).map(([subject, v]) => ({
+            subject,
+            total: v.total,
+            correct: v.correct,
+            wrong: v.total - v.correct,
+            accuracy: Math.round((v.correct / v.total) * 100),
+            avg_time: Math.round(v.time / v.total),
+        }));
+        const sorted = [...subjectStats].sort((a, b) => a.accuracy - b.accuracy);
+        const wrongTotal = total - correct;
+        return {
+            user_id: -1,
+            has_data: true,
+            total_solved: total,
+            overall_accuracy: Math.round((correct / total) * 100),
+            overall_avg_time: Math.round(totalTime / total),
+            subject_stats: subjectStats,
+            weak_subjects: sorted.slice(0, 2).filter((s) => s.accuracy < 70),
+            strong_subjects: sorted.slice(-2).filter((s) => s.accuracy >= 70).reverse(),
+            trend: [],
+            repeated_wrong: [],
+            wrong_distribution: sorted
+                .filter((s) => s.wrong > 0)
+                .map((s) => ({
+                    subject: s.subject,
+                    wrong_count: s.wrong,
+                    percentage: wrongTotal > 0 ? Math.round((s.wrong / wrongTotal) * 100) : 0,
+                })),
+        };
+    };
+
     // 풀이 로그 분석만
     const handleAnalyze = async () => {
+        if (isGuest) {
+            const logs = loadGuestLogs() || [];
+            if (logs.length === 0) {
+                setError("가상 모의고사(랜덤/선택)를 먼저 풀어주세요. 풀이 기록은 브라우저에만 임시 저장됩니다.");
+                return;
+            }
+            const a = computeGuestAnalysis(logs);
+            if (a) {
+                setAnalysis(a);
+                setActiveTab("analysis");
+            }
+            return;
+        }
         setIsAnalyzing(true);
         setError(null);
         try {
@@ -358,20 +472,37 @@ export default function StudyPlanPage() {
         }, 1000);
 
         try {
-            const res = await fetch("/api/study-plan", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
+            let body: Record<string, unknown>;
+            if (isGuest) {
+                let guestProfile: Record<string, unknown> = {};
+                try {
+                    const pr = localStorage.getItem(GUEST_PROFILE_KEY);
+                    if (pr) guestProfile = JSON.parse(pr);
+                } catch {
+                    /* ignore */
+                }
+                body = {
+                    action: "generate_guest",
+                    question: "내 풀이 데이터를 분석해서 최적의 학습 계획을 세워줘",
+                    guest_profile: guestProfile,
+                    guest_logs: loadGuestLogs() || [],
+                };
+            } else {
+                body = {
                     action: "generate",
                     user_id: parseInt(userId),
                     question: "내 풀이 데이터를 분석해서 최적의 학습 계획을 세워줘",
-                }),
+                };
+            }
+
+            const res = await fetch("/api/study-plan", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
             });
             const data = await res.json();
             if (data.success) {
-                // 분석 결과도 함께 업데이트
                 if (data.analysis) setAnalysis(data.analysis);
-                // plan_json 추출
                 const plan = data.study_plan || data.plan;
                 if (plan?.plan_json) {
                     setPlanJson(sanitizeDeep(plan.plan_json));
@@ -379,7 +510,6 @@ export default function StudyPlanPage() {
                     setPlanJson(sanitizeDeep(data.plan_json));
                 }
                 setGenerationMethod(data.generation_method || "template");
-                // RAG 출처 정보 추출
                 const sources = data.rag_sources
                     || plan?.plan_json?.rag_sources
                     || data.plan_json?.rag_sources
@@ -405,6 +535,10 @@ export default function StudyPlanPage() {
 
     // 기존 학습 계획 조회
     const handleLoadPlan = async () => {
+        if (isGuest) {
+            setError("게스트 모드에서는 서버에 저장된 학습 계획이 없습니다. AI 플랜 생성으로만 확인할 수 있습니다.");
+            return;
+        }
         setIsLoadingPlan(true);
         setError(null);
         try {
@@ -452,27 +586,58 @@ export default function StudyPlanPage() {
                 </div>
                 <div className="header-right">
                     <a href="/" className="home-link">홈</a>
-                    <button onClick={handleLogout} className="logout-link">로그아웃</button>
+                    {loggedInUser && (
+                        <button type="button" onClick={handleLogout} className="logout-link">로그아웃</button>
+                    )}
+                    {isGuest && (
+                        <a href="/login" className="logout-link" style={{ color: "rgba(251,191,36,0.8)" }}>로그인</a>
+                    )}
                 </div>
             </header>
+
+            {isGuest && (
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "10px 32px",
+                        fontSize: "0.78rem",
+                        color: "rgba(251,191,36,0.8)",
+                        background: "rgba(251,191,36,0.06)",
+                        borderBottom: "1px solid rgba(251,191,36,0.1)",
+                    }}
+                >
+                    게스트(임시) — 풀이·학습계획은 DB에 저장되지 않으며, 브라우저를 닫으면 사라질 수 있습니다.
+                    <a href="/user" style={{ marginLeft: "auto", color: "rgba(251,191,36,1)", fontWeight: 600 }}>학습 프로필 →</a>
+                </div>
+            )}
 
             {/* 사용자 선택 + 액션 버튼 */}
             <div className="action-bar">
                 <div className="user-input-group">
                     <label className="input-label">
-                        {loggedInUser?.display_name
-                            ? `${loggedInUser.display_name} 님`
-                            : userLoading ? "로딩 중..." : "사용자 ID"}
+                        {isGuest
+                            ? "임시 게스트"
+                            : loggedInUser?.display_name
+                                ? `${loggedInUser.display_name} 님`
+                                : userLoading ? "로딩 중..." : "사용자 ID"}
                     </label>
-                    <input
-                        type="number"
-                        value={userId}
-                        onChange={(e) => setUserId(e.target.value)}
-                        className="user-input"
-                        min="1"
-                        readOnly={!!loggedInUser?.id}
-                        style={loggedInUser?.id ? { opacity: 0.7, cursor: "default" } : {}}
-                    />
+                    {isGuest ? (
+                        <span className="user-input" style={{ display: "inline-block", border: "none", opacity: 0.85 }}>
+                            —
+                        </span>
+                    ) : (
+                        <input
+                            type="number"
+                            value={userId}
+                            onChange={(e) => setUserId(e.target.value)}
+                            className="user-input"
+                            min="1"
+                            readOnly={!!loggedInUser?.id}
+                            style={loggedInUser?.id ? { opacity: 0.7, cursor: "default" } : {}}
+                        />
+                    )}
                 </div>
                 <button
                     onClick={handleAnalyze}
@@ -481,13 +646,14 @@ export default function StudyPlanPage() {
                 >
                     {isAnalyzing ? "분석 중..." : "📊 풀이 분석"}
                 </button>
-                <button
-                    onClick={handleLoadPlan}
-                    disabled={isAnalyzing || isGenerating || isLoadingPlan}
-                    className="btn btn-load-plan"
-                >
-                    {isLoadingPlan ? "조회 중..." : "📋 학습 계획"}
-                </button>
+                    <button
+                        onClick={handleLoadPlan}
+                        disabled={isAnalyzing || isGenerating || isLoadingPlan || isGuest}
+                        className="btn btn-load-plan"
+                        title={isGuest ? "게스트는 서버 저장 계획이 없습니다" : undefined}
+                    >
+                        {isLoadingPlan ? "조회 중..." : "📋 학습 계획"}
+                    </button>
                 <span className="generate-wrapper">
                     <button
                         onClick={handleGenerate}
@@ -495,7 +661,9 @@ export default function StudyPlanPage() {
                             isAnalyzing || isGenerating || isLoadingPlan ||
                             !isProfileSet || !analysis?.has_data
                         }
-                        className={`btn btn-generate${!isProfileSet || !analysis?.has_data ? " btn-generate-locked" : ""}`}
+                        className={`btn btn-generate${
+                            !isProfileSet || !analysis?.has_data ? " btn-generate-locked" : ""
+                        }`}
                     >
                         {isGenerating
                             ? `생성 중... ${generateElapsed > 0 ? `(${generateElapsed}초)` : ""}`
@@ -503,7 +671,9 @@ export default function StudyPlanPage() {
                     </button>
                     {(!isProfileSet || !analysis?.has_data) && (
                         <span className="generate-tooltip">
-                            사용자 정보를 설정하고, 가상모의고사를 통한 풀이 분석을 진행해주세요. 정교한 학습 계획을 생성할 수 있습니다.
+                            {isGuest
+                                ? "사용자 정보(임시)에서 학습 프로필을 저장한 뒤, 모의고사를 풀고 「풀이 분석」을 눌러주세요."
+                                : "사용자 정보를 설정하고, 가상모의고사를 통한 풀이 분석을 진행해주세요. 정교한 학습 계획을 생성할 수 있습니다."}
                         </span>
                     )}
                 </span>

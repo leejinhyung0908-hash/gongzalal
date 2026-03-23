@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getCurrentUser, storeLinkedProviders, clearForceReauth } from "@/lib/auth-api";
+import { clearGuestSessionData } from "@/lib/guest-session";
 
 export interface LinkedAccount {
     provider: string;
@@ -48,6 +49,8 @@ export function useUser(): UseUserReturn {
             const data = await getCurrentUser();
             if (data && data.id !== undefined) {
                 setUser(data as UserInfo);
+                // 로그인 성공 → 게스트 임시 저장소 초기화 (일회성 세션 종료)
+                clearGuestSessionData();
 
                 // ── 연동 프로바이더 localStorage 동기화 ──
                 // 로그인 상태가 확인될 때마다 최신 연동 정보를 localStorage에 저장.

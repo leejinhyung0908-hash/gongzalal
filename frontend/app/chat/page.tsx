@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { logout } from "@/lib/auth-api";
+import { useUser } from "@/lib/hooks/useUser";
+import { isGuestEntryActive } from "@/lib/guest-session";
 import {
     Dialog,
     DialogContent,
@@ -72,6 +74,8 @@ function loadThreadIdFromStorage(): string {
 }
 
 export default function ChatbotUI() {
+    const { user, loading: userLoading } = useUser();
+    const [guestBanner, setGuestBanner] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -81,24 +85,34 @@ export default function ChatbotUI() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     // 멀티턴 대화 세션 ID (sessionStorage에서 복원)
     const threadIdRef = useRef<string>("");
+    const authReadyRef = useRef(false);
 
-    // ── 마운트 시 sessionStorage에서 이력 복원 ──
+    // 비로그인: 대화 이력 저장 안 함 / 로그인: sessionStorage 복원·저장
     useEffect(() => {
-        const restored = loadMessagesFromStorage();
-        setMessages(restored);
-        threadIdRef.current = loadThreadIdFromStorage();
-    }, []);
+        if (userLoading) return;
+        if (authReadyRef.current) return;
+        authReadyRef.current = true;
+        setGuestBanner(isGuestEntryActive());
+        if (user) {
+            const restored = loadMessagesFromStorage();
+            setMessages(restored);
+            threadIdRef.current = loadThreadIdFromStorage();
+        } else {
+            setMessages([WELCOME_MESSAGE]);
+            threadIdRef.current = generateSessionId();
+        }
+    }, [userLoading, user]);
 
-    // ── messages 변경 시 sessionStorage에 저장 ──
+    // ── messages 변경 시 sessionStorage에 저장 (로그인 사용자만) ──
     useEffect(() => {
-        // 초기 환영 메시지만 있는 경우 저장 불필요
+        if (userLoading || !user) return;
         if (messages.length <= 1 && messages[0]?.text === WELCOME_MESSAGE.text) {
             return;
         }
         try {
             sessionStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(messages));
         } catch { /* 용량 초과 등 무시 */ }
-    }, [messages]);
+    }, [messages, userLoading, user]);
 
     const handleLogout = () => {
         setIsMenuOpen(false);
@@ -196,6 +210,14 @@ export default function ChatbotUI() {
                     </button>
                 </div>
             </header>
+
+            {!userLoading && !user && guestBanner && (
+                <div className="guest-chat-banner">
+                    <span>👤</span>
+                    <span>게스트(임시) — 대화·풀이 기록은 브라우저를 닫으면 사라집니다. DB에 저장되지 않습니다.</span>
+                    <a href="/login">로그인</a>
+                </div>
+            )}
 
             {/* ── 메시지 영역 ── */}
             <main className="chat-messages">
@@ -385,6 +407,23 @@ export default function ChatbotUI() {
                     position: sticky;
                     top: 0;
                     z-index: 10;
+                }
+
+                .guest-chat-banner {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                    padding: 8px 16px;
+                    font-size: 0.72rem;
+                    color: rgba(251, 191, 36, 0.75);
+                    background: rgba(251, 191, 36, 0.06);
+                    border-bottom: 1px solid rgba(251, 191, 36, 0.1);
+                }
+                .guest-chat-banner a {
+                    color: rgba(251, 191, 36, 0.95);
+                    font-weight: 600;
+                    margin-left: auto;
                 }
 
                 .header-logo {

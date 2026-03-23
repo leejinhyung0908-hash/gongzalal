@@ -83,11 +83,8 @@ export const authFetch = async (
                 // 원래 요청 재시도
                 response = await fetch(url, fetchOptions);
             } else {
-                // Refresh 실패 → 로그인 페이지로 이동
-                console.warn("[Auth] Refresh 실패 → 로그인 필요");
-                if (typeof window !== "undefined") {
-                    window.location.href = "/login";
-                }
+                // Refresh 실패 → 게스트/비로그인 계속 (자동 /login 이동 없음)
+                console.warn("[Auth] Refresh 실패 - 비로그인으로 계속");
             }
         } else {
             // 이미 refresh 진행 중 → 완료될 때까지 대기

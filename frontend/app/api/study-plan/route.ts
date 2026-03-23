@@ -94,6 +94,33 @@ export async function POST(request: Request) {
             return Response.json(await response.json());
         }
 
+        if (action === "generate_guest") {
+            const { question, guest_profile, guest_logs } = body as {
+                action: string;
+                question?: string;
+                guest_profile?: Record<string, unknown>;
+                guest_logs?: unknown[];
+            };
+            const response = await fetch(`${backendUrl}/api/v1/admin/study-plans/generate-guest`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    question: question || "내 풀이 데이터를 분석해서 학습 계획을 세워줘",
+                    guest_profile: guest_profile || {},
+                    guest_logs: guest_logs || [],
+                }),
+                signal: AbortSignal.timeout(300000),
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                return Response.json(
+                    { success: false, error: "게스트 학습 계획 생성 실패", details: errorText },
+                    { status: response.status }
+                );
+            }
+            return Response.json(await response.json());
+        }
+
         return Response.json(
             { error: "알 수 없는 action입니다." },
             { status: 400 }

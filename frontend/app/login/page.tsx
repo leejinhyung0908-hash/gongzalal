@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { handleKakaoLogin, handleNaverLogin, handleGoogleLogin } from "@/service/mainservice";
 import { API_BASE_URL, getStoredLinkedProviders, storeLinkedProviders } from "@/lib/auth-api";
+import { markGuestEntry } from "@/lib/guest-session";
 
 const PARTICLES = [
     { left: "3%", delay: "0s", duration: "9s", opacity: 0.15 },
@@ -199,11 +200,25 @@ export default function LoginPage() {
                     <span className="divider-line" />
                 </div>
 
-                {/* 게스트 입장 버튼 */}
-                <a href="/chat" className="guest-btn">
+                {/* 게스트 입장 — 로그인 중에는 비활성 (로그아웃 후 이용) */}
+                <button
+                    type="button"
+                    className={`guest-btn${isLoggedIn ? " guest-btn-disabled" : ""}`}
+                    disabled={isLoggedIn}
+                    onClick={() => {
+                        if (isLoggedIn) return;
+                        markGuestEntry();
+                        window.location.href = "/chat";
+                    }}
+                >
                     <span className="guest-btn-text">게스트로 입장하기</span>
                     <span className="guest-btn-line" />
-                </a>
+                </button>
+                {isLoggedIn && (
+                    <p className="guest-disabled-hint">
+                        로그아웃 후 게스트 체험을 이용할 수 있습니다.
+                    </p>
+                )}
 
                 <div className="login-footer">
                     <a href="/" className="footer-link">메인으로</a>
@@ -525,6 +540,25 @@ export default function LoginPage() {
 
                 .guest-btn:hover .guest-btn-line {
                     width: 80%;
+                }
+
+                .guest-btn-disabled,
+                .guest-btn:disabled {
+                    opacity: 0.35;
+                    cursor: not-allowed;
+                    pointer-events: none;
+                }
+                .guest-btn-disabled:hover,
+                .guest-btn:disabled:hover {
+                    color: rgba(255, 255, 255, 0.35);
+                    border-color: rgba(255, 255, 255, 0.08);
+                }
+                .guest-disabled-hint {
+                    margin: 10px 0 0;
+                    font-size: 0.72rem;
+                    color: rgba(255, 255, 255, 0.28);
+                    text-align: center;
+                    line-height: 1.5;
                 }
 
                 /* ── 하단 링크 ── */

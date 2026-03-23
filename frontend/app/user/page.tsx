@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { logout, API_BASE_URL, authFetch, startSocialLink, storeLinkedProviders } from "@/lib/auth-api";
 import { useUser, LinkedAccount } from "@/lib/hooks/useUser";
+import { GUEST_PROFILE_KEY, isGuestEntryActive } from "@/lib/guest-session";
 
 // ============================================================================
 // 상수 정의
@@ -57,6 +58,15 @@ type UserProfile = {
 
 function UserProfilePageContent() {
     const { user: loggedInUser, loading: userLoading } = useUser();
+    const [guestEntry, setGuestEntry] = useState(false);
+
+    useEffect(() => {
+        try {
+            setGuestEntry(isGuestEntryActive());
+        } catch {
+            setGuestEntry(false);
+        }
+    }, []);
 
     // 프로필 데이터
     const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -115,11 +125,40 @@ function UserProfilePageContent() {
     };
 
     useEffect(() => {
+        if (userLoading) return;
         if (loggedInUser?.id) {
             fetchProfile();
+            return;
+        }
+        // 게스트(「게스트로 입장」으로만): localStorage 프로필 로드
+        if (guestEntry) {
+            try {
+                const raw = localStorage.getItem(GUEST_PROFILE_KEY);
+                if (raw) {
+                    const g = JSON.parse(raw) as Record<string, unknown>;
+                    setFormAge(g.age != null ? String(g.age) : "");
+                    setFormEmployment((g.employment_status as string) || "");
+                    setFormFirstTimer(
+                        g.is_first_timer === true ? "true" : g.is_first_timer === false ? "false" : ""
+                    );
+                    setFormStudyDuration((g.study_duration as string) || "");
+                    setFormTargetPosition((g.target_position as string) || "");
+                    setFormWeakSubjects(
+                        g.weak_subjects ? String(g.weak_subjects).split(",").map((s) => s.trim()).filter(Boolean) : []
+                    );
+                    setFormStrongSubjects(
+                        g.strong_subjects ? String(g.strong_subjects).split(",").map((s) => s.trim()).filter(Boolean) : []
+                    );
+                }
+            } catch {
+                /* ignore */
+            }
+            setProfileLoading(false);
+        } else {
+            setProfileLoading(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loggedInUser?.id]);
+    }, [userLoading, loggedInUser?.id, guestEntry]);
 
     // URL 쿼리에서 연동 결과 확인
     useEffect(() => {
@@ -202,9 +241,30 @@ function UserProfilePageContent() {
 
     // 저장
     const handleSave = async () => {
-        if (!loggedInUser?.id) return;
         setIsSaving(true);
         setSaveMessage(null);
+
+        // 게스트: localStorage만 (DB 없음)
+        if (!loggedInUser?.id) {
+            try {
+                const guestData = {
+                    age: formAge ? parseInt(formAge) : null,
+                    employment_status: formEmployment || null,
+                    is_first_timer: formFirstTimer === "true" ? true : formFirstTimer === "false" ? false : null,
+                    study_duration: formStudyDuration || null,
+                    target_position: formTargetPosition || null,
+                    weak_subjects: formWeakSubjects.length > 0 ? formWeakSubjects.join(",") : null,
+                    strong_subjects: formStrongSubjects.length > 0 ? formStrongSubjects.join(",") : null,
+                };
+                localStorage.setItem(GUEST_PROFILE_KEY, JSON.stringify(guestData));
+                setSaveMessage("임시 저장되었습니다. (브라우저·기기에만 저장, 로그인 시 DB에 반영됩니다)");
+                setIsEditing(false);
+            } finally {
+                setIsSaving(false);
+            }
+            return;
+        }
+
         try {
             // 항상 모든 필드를 전송 — 빈 값은 null 로 보내 DB 에서 클리어
             const body: Record<string, unknown> = {
@@ -270,7 +330,12 @@ function UserProfilePageContent() {
                 </div>
                 <div className="header-right">
                     <a href="/" className="home-link">홈</a>
-                    <button onClick={handleLogout} className="logout-link">로그아웃</button>
+                    {loggedInUser && (
+                        <button onClick={handleLogout} className="logout-link">로그아웃</button>
+                    )}
+                    {!loggedInUser && guestEntry && (
+                        <a href="/login" className="logout-link" style={{ color: "rgba(251,191,36,0.85)" }}>로그인</a>
+                    )}
                 </div>
             </header>
 
@@ -281,11 +346,112 @@ function UserProfilePageContent() {
                         <div className="loading-spinner" />
                         <p>사용자 정보를 불러오는 중...</p>
                     </div>
-                ) : !loggedInUser ? (
+                ) : !loggedInUser && !guestEntry ? (
                     <div className="empty-state">
                         <p>로그인이 필요합니다.</p>
+                        <p>게스트 체험은 로그인 페이지에서 「게스트로 입장하기」를 눌러주세요.</p>
                         <a href="/login" className="login-btn">로그인하기</a>
                     </div>
+                ) : !loggedInUser && guestEntry ? (
+                    <>
+                        <div className="card profile-card" style={{ borderColor: "rgba(251,191,36,0.2)" }}>
+                            <div className="profile-top">
+                                <div className="avatar">
+                                    <span className="avatar-text">임</span>
+                                </div>
+                                <div className="profile-info">
+                                    <h2 className="profile-name">임시 게스트 사용자</h2>
+                                    <div className="profile-meta">
+                                        <span className="id-badge" style={{ color: "rgba(251,191,36,0.7)" }}>일회성 · DB 미저장</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p className="join-date" style={{ marginTop: 8 }}>
+                                가상 모의고사·풀이 분석·AI 학습계획은 브라우저에만 임시 저장됩니다. 로그인하면 계정에 저장됩니다.
+                            </p>
+                        </div>
+                        <p className="guest-form-hint" style={{ marginBottom: 16, fontSize: "0.85rem", color: "rgba(255,255,255,0.45)" }}>
+                            아래 학습 프로필을 입력한 뒤 「임시 저장」을 눌러주세요.
+                        </p>
+
+                        <div className="card">
+                            <div className="card-header">
+                                <h3 className="card-title">📋 학습 프로필 (임시)</h3>
+                                <div className="edit-actions">
+                                    <button className="reset-btn" type="button" onClick={handleReset}>초기화</button>
+                                    <button className="save-btn" type="button" onClick={handleSave} disabled={isSaving}>
+                                        {isSaving ? "저장 중..." : "임시 저장"}
+                                    </button>
+                                </div>
+                            </div>
+                            {saveMessage && (
+                                <div className={`save-message ${saveMessage.includes("저장") || saveMessage.includes("완료") ? "success" : "error"}`}>
+                                    {saveMessage}
+                                </div>
+                            )}
+                            <div className="form-grid">
+                                <div className="form-group">
+                                    <label className="form-label">나이</label>
+                                    <input type="number" className="form-input" value={formAge} onChange={(e) => setFormAge(e.target.value)} placeholder="나이" min={15} max={80} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">직장 여부</label>
+                                    <select className="form-select" value={formEmployment} onChange={(e) => setFormEmployment(e.target.value)}>
+                                        <option value="">선택</option>
+                                        {EMPLOYMENT_OPTIONS.map((opt) => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">초시 여부</label>
+                                    <select className="form-select" value={formFirstTimer} onChange={(e) => setFormFirstTimer(e.target.value)}>
+                                        <option value="">선택</option>
+                                        <option value="true">초시 (첫 응시)</option>
+                                        <option value="false">재시 (재응시)</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">목표 기간</label>
+                                    <select className="form-select" value={formStudyDuration} onChange={(e) => setFormStudyDuration(e.target.value)}>
+                                        <option value="">선택</option>
+                                        <option value="3개월 이내">3개월 이내</option>
+                                        <option value="6개월">6개월</option>
+                                        <option value="9개월">9개월</option>
+                                        <option value="1년">1년</option>
+                                        <option value="1년 6개월">1년 6개월</option>
+                                        <option value="2년">2년</option>
+                                        <option value="2년 이상">2년 이상</option>
+                                        <option value="3년 이상">3년 이상</option>
+                                    </select>
+                                </div>
+                                <div className="form-group full-width">
+                                    <label className="form-label">목표 직렬</label>
+                                    <div className="chip-grid">
+                                        {POSITIONS.map((pos) => (
+                                            <button key={pos} type="button" className={`chip ${formTargetPosition === pos ? "chip-active" : ""}`} onClick={() => setFormTargetPosition(formTargetPosition === pos ? "" : pos)}>{pos}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="form-group full-width">
+                                    <label className="form-label">취약 과목</label>
+                                    <div className="chip-grid">
+                                        {SUBJECTS.map((subj) => (
+                                            <button key={subj} type="button" className={`chip chip-weak ${formWeakSubjects.includes(subj) ? "chip-active" : ""}`} onClick={() => toggleSubject(subj, formWeakSubjects, setFormWeakSubjects)}>{subj}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="form-group full-width">
+                                    <label className="form-label">강점 과목</label>
+                                    <div className="chip-grid">
+                                        {SUBJECTS.map((subj) => (
+                                            <button key={subj} type="button" className={`chip chip-strong ${formStrongSubjects.includes(subj) ? "chip-active" : ""}`} onClick={() => toggleSubject(subj, formStrongSubjects, setFormStrongSubjects)}>{subj}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </>
                 ) : (
                     <>
                         {/* ── 프로필 카드 ── */}
@@ -293,12 +459,12 @@ function UserProfilePageContent() {
                             <div className="profile-top">
                                 <div className="avatar">
                                     <span className="avatar-text">
-                                        {loggedInUser.display_name?.charAt(0) || "?"}
+                                        {loggedInUser?.display_name?.charAt(0) || "?"}
                                     </span>
                                 </div>
                                 <div className="profile-info">
                                     <h2 className="profile-name">
-                                        {loggedInUser.display_name || "이름 없음"}
+                                        {loggedInUser?.display_name || "이름 없음"}
                                     </h2>
                                     <div className="profile-meta">
                                         {providerInfo && (

@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useUser } from "@/lib/hooks/useUser";
+import { GUEST_SOLVING_LOGS_KEY, isGuestEntryActive } from "@/lib/guest-session";
 
 // ── 타입 ──
 type MappedQuestion = {
@@ -419,15 +420,20 @@ function RandomExamPageContent() {
         try {
             const expandedLogs = images.flatMap((img, idx) => {
                 const mapped = getMappedQuestions(img);
+                const subject = img.subject || "기타";
                 const baseTime = finalQuestionTimes[idx] ?? 0;
                 const perQuestionTime = Math.max(0, Math.round(baseTime / Math.max(mapped.length, 1)));
                 return mapped.map((q) => {
                     const selected = getSelectedAnswer(q.question_id);
                     const status = classifyAnswer(selected, q.answer_key);
+                    const isCorrect = status === "correct";
                     return {
                         question_id: q.question_id,
+                        subject,
                         selected_answer: selected != null ? String(selected) : null,
+                        answer_key: q.answer_key ?? null,
                         time_spent: perQuestionTime,
+                        is_correct: isCorrect,
                         is_wrong_note: status === "wrong",
                     };
                 });
@@ -436,8 +442,11 @@ function RandomExamPageContent() {
             // 동일 question_id 중복 저장 방지 (마지막 값 우선)
             const logByQuestionId = new Map<number, {
                 question_id: number;
+                subject: string;
                 selected_answer: string | null;
+                answer_key: string | null;
                 time_spent: number;
+                is_correct: boolean;
                 is_wrong_note: boolean;
             }>();
             expandedLogs.forEach((log) => {
@@ -445,10 +454,47 @@ function RandomExamPageContent() {
             });
             const logs = Array.from(logByQuestionId.values());
 
+            // 게스트: DB 없이 sessionStorage에만 임시 저장 (학습계획/분석용)
+            if (isGuestEntryActive() && !loggedInUser?.id) {
+                try {
+                    let prevLogs: typeof logs = [];
+                    const raw = sessionStorage.getItem(GUEST_SOLVING_LOGS_KEY);
+                    if (raw) {
+                        const parsed = JSON.parse(raw) as { logs?: typeof logs };
+                        if (Array.isArray(parsed.logs)) prevLogs = parsed.logs;
+                    }
+                    const merged = [...prevLogs, ...logs];
+                    const mergedById = new Map<number, (typeof logs)[0]>();
+                    merged.forEach((l) => mergedById.set(l.question_id, l));
+                    sessionStorage.setItem(
+                        GUEST_SOLVING_LOGS_KEY,
+                        JSON.stringify({ logs: Array.from(mergedById.values()) }),
+                    );
+                    console.log(`[SolvingLogs] 게스트 임시 저장 ${logs.length}건 (누적 ${mergedById.size}건)`);
+                    setLogsSaved(true);
+                } catch (e) {
+                    console.error("[SolvingLogs] 게스트 임시 저장 오류:", e);
+                }
+                return;
+            }
+
+            if (!loggedInUser?.id) {
+                console.warn("[SolvingLogs] 로그인 또는 게스트 입장이 필요합니다. 풀이 기록을 저장하지 않습니다.");
+                return;
+            }
+
             const res = await fetch(`${backendUrl}/api/v1/admin/solving-logs/batch`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: loggedInUser?.id ?? 1, logs }),
+                body: JSON.stringify({
+                    user_id: loggedInUser.id,
+                    logs: logs.map((l) => ({
+                        question_id: l.question_id,
+                        selected_answer: l.selected_answer,
+                        time_spent: l.time_spent,
+                        is_wrong_note: l.is_wrong_note,
+                    })),
+                }),
             });
 
             if (res.ok) {
@@ -463,7 +509,7 @@ function RandomExamPageContent() {
         } finally {
             setSavingLogs(false);
         }
-    }, [images, selectedAnswersByQuestionId, backendUrl, logsSaved, savingLogs]);
+    }, [images, selectedAnswersByQuestionId, backendUrl, logsSaved, savingLogs, loggedInUser?.id]);
 
     // ── 다시 시작 ──
     const restart = () => {

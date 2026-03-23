@@ -69,6 +69,103 @@ class GeneratePlanRequest(BaseModel):
     )
 
 
+class GuestSolvingLog(BaseModel):
+    """게스트 풀이 로그 항목."""
+
+    question_id: int = 0
+    subject: str = ""
+    selected_answer: Optional[str] = None
+    answer_key: Optional[str] = None
+    time_spent: int = 0
+    is_correct: bool = False
+    is_wrong_note: bool = False
+
+
+class GenerateGuestPlanRequest(BaseModel):
+    """게스트 AI 학습 계획 (DB 미저장)."""
+
+    question: str = Field(
+        default="내 풀이 데이터를 분석해서 학습 계획을 세워줘",
+        description="사용자 질문/요청",
+    )
+    guest_profile: Dict[str, Any] = Field(default_factory=dict)
+    guest_logs: list[GuestSolvingLog] = Field(default_factory=list)
+
+
+@router.post("/generate-guest", response_model=dict)
+async def generate_study_plan_guest(
+    request: GenerateGuestPlanRequest,
+    conn: psycopg.Connection = Depends(get_db_connection),
+) -> dict:
+    """게스트: 프로필+풀이 로그 직접 수신, DB 저장 없음."""
+    try:
+        from backend.domain.admin.hub.orchestrators.study_plan_flow import StudyPlanFlow
+
+        logs = [log.model_dump() for log in request.guest_logs]
+        total = len(logs)
+        correct = sum(1 for l in logs if l.get("is_correct"))
+        total_time = sum(int(l.get("time_spent") or 0) for l in logs)
+        overall_avg_time = float(total_time) / float(total) if total else 0.0
+        subject_map: Dict[str, Dict] = {}
+        for l in logs:
+            s = l.get("subject") or "기타"
+            if s not in subject_map:
+                subject_map[s] = {"total": 0, "correct": 0, "time": 0}
+            subject_map[s]["total"] += 1
+            if l.get("is_correct"):
+                subject_map[s]["correct"] += 1
+            subject_map[s]["time"] += l.get("time_spent", 0)
+
+        subject_stats = [
+            {
+                "subject": s,
+                "total": v["total"],
+                "correct": v["correct"],
+                "wrong": v["total"] - v["correct"],
+                "accuracy": round(v["correct"] / v["total"] * 100) if v["total"] else 0,
+                "avg_time": round(v["time"] / v["total"]) if v["total"] else 0,
+            }
+            for s, v in subject_map.items()
+        ]
+        sorted_stats = sorted(subject_stats, key=lambda x: x["accuracy"])
+        guest_analysis = {
+            "has_data": total > 0,
+            "total_solved": total,
+            "overall_accuracy": float(round(correct / total * 100)) if total else 0.0,
+            "overall_avg_time": overall_avg_time,
+            "subject_stats": subject_stats,
+            "weak_subjects": sorted_stats[:2] if sorted_stats else [],
+            "strong_subjects": sorted_stats[-2:][::-1] if sorted_stats else [],
+        }
+
+        llm = None
+        try:
+            from backend.dependencies import get_llm
+            llm = get_llm(
+                model_type=settings.STUDY_PLAN_MODEL_TYPE,
+                model_name=settings.STUDY_PLAN_MODEL_NAME,
+            )
+        except Exception as e:
+            logger.warning(f"[StudyPlanRouter] LLM 로드 실패: {e}")
+
+        flow = StudyPlanFlow()
+        result = await flow.process_study_plan_request(
+            request_text=request.question,
+            request_data={
+                "action": "generate_guest",
+                "guest_profile": request.guest_profile,
+                "guest_analysis": guest_analysis,
+                "_conn": conn,
+                "_llm": llm,
+            },
+        )
+        return result
+
+    except Exception as e:
+        logger.error(f"[StudyPlanRouter] 게스트 학습 계획 실패: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"게스트 학습 계획 실패: {str(e)}")
+
+
 @router.post("/generate", response_model=dict)
 async def generate_study_plan_ai(
     request: GeneratePlanRequest,

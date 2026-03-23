@@ -147,6 +147,7 @@ class StudyPlanFlow:
         graph.add_node("process_create", self._process_create_node)
         graph.add_node("process_read", self._process_read_node)
         graph.add_node("process_generate", self._process_generate_node)
+        graph.add_node("process_generate_guest", self._process_generate_guest_node)
         graph.add_node("finalize", self._finalize_node)
 
         # 엣지 추가
@@ -159,11 +160,13 @@ class StudyPlanFlow:
                 "create": "process_create",
                 "read": "process_read",
                 "generate": "process_generate",
+                "generate_guest": "process_generate_guest",
             },
         )
         graph.add_edge("process_create", "finalize")
         graph.add_edge("process_read", "finalize")
         graph.add_edge("process_generate", "finalize")
+        graph.add_edge("process_generate_guest", "finalize")
         graph.add_edge("finalize", END)
 
         return graph.compile()
@@ -177,9 +180,11 @@ class StudyPlanFlow:
         if not request_data:
             return {**state, "error": "요청 데이터가 비어있습니다."}
 
-        user_id = request_data.get("user_id")
-        if not user_id:
-            return {**state, "error": "user_id가 필요합니다."}
+        action = request_data.get("action", "read")
+        if action != "generate_guest":
+            user_id = request_data.get("user_id")
+            if not user_id:
+                return {**state, "error": "user_id가 필요합니다."}
 
         return state
 
@@ -202,7 +207,7 @@ class StudyPlanFlow:
     def _route_action(self, state: StudyPlanProcessingState) -> str:
         """액션에 따른 라우팅."""
         action = state.get("action", "read")
-        if action in ("create", "read", "generate"):
+        if action in ("create", "read", "generate", "generate_guest"):
             return action
         return "read"
 
@@ -589,6 +594,244 @@ class StudyPlanFlow:
         except Exception as e:
             logger.error(
                 f"[StudyPlanFlow] AI 학습 계획 생성 오류: {e}", exc_info=True
+            )
+            return {
+                **state,
+                "result": {"success": False, "error": str(e)},
+                "error": str(e),
+            }
+
+    def _guest_profile_to_user_info(self, profile: Dict[str, Any]) -> Dict[str, Any]:
+        """localStorage 게스트 프로필 → RAG/프롬프트용 user_info."""
+        if not profile:
+            return {}
+        weak = profile.get("weak_subjects")
+        strong = profile.get("strong_subjects")
+        if isinstance(weak, str):
+            weak = [s.strip() for s in weak.split(",") if s.strip()]
+        elif not isinstance(weak, list):
+            weak = []
+        if isinstance(strong, str):
+            strong = [s.strip() for s in strong.split(",") if s.strip()]
+        elif not isinstance(strong, list):
+            strong = []
+        return {
+            "display_name": profile.get("display_name") or "게스트",
+            "daily_study_time": profile.get("daily_study_time"),
+            "study_duration": profile.get("study_duration"),
+            "base_score": profile.get("base_score"),
+            "age": profile.get("age"),
+            "employment_status": profile.get("employment_status"),
+            "is_first_timer": profile.get("is_first_timer"),
+            "target_position": profile.get("target_position"),
+            "weak_subjects": weak,
+            "strong_subjects": strong,
+        }
+
+    def _guest_analysis_summary_text(self, analysis: Dict[str, Any]) -> str:
+        """게스트 분석 dict를 프롬프트용 요약 문자열로 변환."""
+        if not analysis.get("has_data"):
+            return "풀이 기록이 없어 분석할 수 없습니다."
+        try:
+            merged = dict(analysis)
+            if "overall_avg_time" not in merged:
+                merged["overall_avg_time"] = 0.0
+            return SolvingLogAnalyzer.summarize_for_prompt(merged)
+        except Exception as e:
+            logger.warning(f"[StudyPlanFlow] 게스트 분석 요약 실패: {e}")
+            return (
+                f"총 {analysis.get('total_solved', 0)}문제, "
+                f"정답률 {float(analysis.get('overall_accuracy', 0)):.1f}%"
+            )
+
+    async def _process_generate_guest_node(
+        self, state: StudyPlanProcessingState
+    ) -> StudyPlanProcessingState:
+        """게스트 AI 학습 계획 — DB 저장 없이 RAG + LLM만 수행."""
+        request_data = state.get("request_data", {})
+        request_text = state.get("request_text", "학습 계획을 세워줘")
+        conn = request_data.get("_conn")
+        llm = request_data.get("_llm")
+
+        analysis = request_data.get("guest_analysis") or {"has_data": False}
+        user_info = self._guest_profile_to_user_info(
+            request_data.get("guest_profile") or {}
+        )
+        analysis_summary = self._guest_analysis_summary_text(analysis)
+
+        try:
+            _t_total_start = time.time()
+
+            rag_context = ""
+            matched_results = []
+            rag_sources = []
+
+            if conn is not None:
+                try:
+                    _t0 = time.time()
+                    rag_queries = StudyPlanPromptBuilder.build_rag_queries_from_analysis(
+                        analysis, user_info=user_info
+                    )
+                    matched_results = search_with_profile_matching(
+                        conn,
+                        rag_queries,
+                        user_info=user_info,
+                        top_k_per_query=3,
+                        final_top_k=4,
+                        similarity_threshold=0.20,
+                    )
+                    rag_context = build_mentoring_context(
+                        matched_results,
+                        max_results=4,
+                        include_details=False,
+                    )
+                    rag_context = _truncate_text(rag_context, _MAX_RAG_CONTEXT_CHARS)
+                    rag_sources = extract_rag_sources(
+                        matched_results, max_results=4, user_info=user_info
+                    )
+                    _rag_elapsed = time.time() - _t0
+                    logger.info(
+                        f"[StudyPlanFlow] 게스트 RAG 완료 ({_rag_elapsed:.1f}s): "
+                        f"{len(matched_results)}건"
+                    )
+                except Exception as e:
+                    logger.warning(f"[StudyPlanFlow] 게스트 RAG 검색 실패: {e}")
+
+            generated_plan = self._generate_template_plan(
+                analysis, user_info, matched_results
+            )
+            generation_method = "template"
+
+            if llm is not None:
+                _t0 = time.time()
+                try:
+                    if not llm.is_loaded():
+                        llm.load()
+
+                    llm_name = llm.__class__.__name__.lower()
+                    is_gemini = "gemini" in llm_name
+
+                    if is_gemini:
+                        prompt = StudyPlanPromptBuilder.build_prompt(
+                            analysis_summary=analysis_summary,
+                            rag_context=rag_context,
+                            user_question=request_text,
+                            user_info=user_info,
+                        )
+                        max_tokens = 8192
+                    else:
+                        prompt = StudyPlanPromptBuilder.build_summarization_prompt(
+                            base_plan=generated_plan,
+                            analysis=analysis,
+                            user_info=user_info,
+                        )
+                        max_tokens = _EXAONE_MAX_NEW_TOKENS
+
+                    generate_kwargs: dict = {
+                        "max_new_tokens": max_tokens,
+                        "temperature": 0.7,
+                        "top_p": 0.9,
+                    }
+                    if is_gemini:
+                        generate_kwargs["response_mime_type"] = "application/json"
+
+                    executor = ThreadPoolExecutor(max_workers=1)
+                    future = executor.submit(llm.generate, prompt, **generate_kwargs)
+                    try:
+                        raw_answer = future.result(timeout=_LLM_GENERATION_TIMEOUT_SEC)
+                    except FuturesTimeoutError:
+                        logger.warning(
+                            f"[StudyPlanFlow] 게스트 LLM 타임아웃({_LLM_GENERATION_TIMEOUT_SEC}s)"
+                        )
+                        raw_answer = ""
+                    finally:
+                        executor.shutdown(wait=False)
+
+                    _gen_elapsed = time.time() - _t0
+                    if raw_answer and raw_answer.strip():
+                        if is_gemini:
+                            parsed_plan = self._parse_plan_json(raw_answer)
+                            if (
+                                isinstance(parsed_plan, dict)
+                                and not parsed_plan.get("parse_failed")
+                            ):
+                                generated_plan = self._merge_plan_with_template(
+                                    generated_plan, parsed_plan
+                                )
+                                generation_method = "gemini_full"
+                                logger.info(
+                                    f"[StudyPlanFlow] 게스트 Gemini 병합 ({_gen_elapsed:.1f}s)"
+                                )
+                        else:
+                            fields = self._extract_minimal_fields(raw_answer)
+                            if fields:
+                                generated_plan = dict(generated_plan)
+                                if "routine" in fields:
+                                    bullets = fields["routine"]
+                                    desc = "\n".join(
+                                        f"{i+1}. {b}" for i, b in enumerate(bullets)
+                                    )
+                                    dr = dict(generated_plan.get("daily_routine") or {})
+                                    dr["description"] = desc
+                                    generated_plan["daily_routine"] = dr
+                                if "difficulty" in fields:
+                                    generated_plan["difficulty_management"] = fields[
+                                        "difficulty"
+                                    ]
+                                if "strategy" in fields:
+                                    generated_plan["key_strategies"] = fields["strategy"]
+                                generation_method = "exaone_hybrid"
+                                logger.info(
+                                    f"[StudyPlanFlow] 게스트 EXAONE 병합 ({_gen_elapsed:.1f}s)"
+                                )
+                except Exception as e:
+                    logger.warning(f"[StudyPlanFlow] 게스트 LLM 생성 실패: {e}")
+
+            generated_plan = _sanitize_plan_payload(generated_plan)
+
+            plan_data = {
+                **generated_plan,
+                "generated_by": generation_method,
+                "analysis_summary": analysis_summary if analysis.get("has_data") else None,
+                "rag_results_count": len(matched_results),
+                "rag_sources": rag_sources,
+                "user_profile_applied": bool(user_info),
+                "user_profile_summary": (
+                    self._build_profile_summary(user_info) if user_info else None
+                ),
+                "guest_mode": True,
+            }
+
+            _total_elapsed = time.time() - _t_total_start
+            result: Dict[str, Any] = {
+                "success": True,
+                "plan_json": plan_data,
+                "plan": {"plan_json": plan_data},
+                "study_plan": {"plan_json": plan_data},
+                "message": (
+                    f"게스트 학습 계획이 생성되었습니다(저장 없음). "
+                    f"(방식: {generation_method}, 소요: {_total_elapsed:.1f}초)"
+                ),
+                "analysis": analysis if analysis.get("has_data") else None,
+                "generation_method": generation_method,
+                "rag_sources": rag_sources,
+            }
+            logger.info(
+                f"[StudyPlanFlow] 게스트 파이프라인 완료: {_total_elapsed:.1f}s "
+                f"({generation_method})"
+            )
+
+            return {
+                **state,
+                "result": result,
+                "generated_plan": generated_plan,
+                "analysis": analysis,
+                "rag_context": rag_context,
+            }
+
+        except Exception as e:
+            logger.error(
+                f"[StudyPlanFlow] 게스트 학습 계획 생성 오류: {e}", exc_info=True
             )
             return {
                 **state,
