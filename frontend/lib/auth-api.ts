@@ -17,6 +17,28 @@ export const API_BASE_URL =
     process.env.NEXT_PUPLIC_API_URL ||
     "http://localhost:8000";
 
+/** 프로덕션 도메인에서 localhost API를 쓰는 경우(빌드 시 env 누락) */
+export function isApiUrlLikelyMisconfiguredForProduction(): boolean {
+    if (typeof window === "undefined") return false;
+    const host = window.location.hostname;
+    const pageIsLocal = host === "localhost" || host === "127.0.0.1";
+    if (pageIsLocal) return false;
+    return (
+        API_BASE_URL.includes("localhost") ||
+        API_BASE_URL.includes("127.0.0.1")
+    );
+}
+
+if (typeof window !== "undefined" && isApiUrlLikelyMisconfiguredForProduction()) {
+    console.error(
+        "[Auth] NEXT_PUBLIC_API_URL이 프로덕션 빌드에 포함되지 않은 것 같습니다 (현재 API_BASE_URL=%s). " +
+            "Vercel → Project → Settings → Environment Variables에 " +
+            "NEXT_PUBLIC_API_URL=https://api.leejinhyung.shop 를 추가한 뒤 재배포하세요. " +
+            "(NEXT_PUBLIC_* 는 빌드 시점에 고정됩니다.)",
+        API_BASE_URL,
+    );
+}
+
 /** refresh 진행 중 중복 요청 방지 플래그 */
 let isRefreshing = false;
 /** refresh 완료를 기다리는 대기열 */
@@ -183,11 +205,16 @@ export const startSocialLogin = async (provider: string): Promise<void> => {
     } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         console.error(`[Auth] 소셜 로그인 시작 실패 (${provider}):`, msg);
+        const vercelHint = isApiUrlLikelyMisconfiguredForProduction()
+            ? "\n\n[Vercel] NEXT_PUBLIC_API_URL=https://api.leejinhyung.shop 를 Production에 넣고 **재배포**해야 합니다. (로컬 .env만으로는 배포물에 반영되지 않습니다.)"
+            : "";
         alert(
             `로그인에 실패했습니다.\n\n${msg}\n\n` +
-            `확인 사항:\n` +
-            `1. 백엔드 서버 실행 확인 (${API_BASE_URL})\n` +
-            `2. 환경 변수 NEXT_PUBLIC_API_URL 설정 확인`
+                `확인 사항:\n` +
+                `1. 백엔드 서버 실행 확인 (${API_BASE_URL})\n` +
+                `2. Vercel 환경 변수 NEXT_PUBLIC_API_URL 설정 후 재배포\n` +
+                `3. 백엔드 CORS에 https://leejinhyung.shop 포함 여부` +
+                vercelHint,
         );
     }
 };

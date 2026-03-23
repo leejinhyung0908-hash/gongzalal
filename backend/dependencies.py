@@ -79,7 +79,7 @@ def get_db_connection() -> psycopg.Connection:
     global _db_conn
 
     def _reconnect() -> None:
-    global _db_conn
+        global _db_conn
         _db_conn = connect_db(settings.DATABASE_URL)
         setup_schema(_db_conn)
 
@@ -103,7 +103,7 @@ def get_db_connection() -> psycopg.Connection:
             except Exception as exc2:
                 raise HTTPException(
                     status_code=503, detail=f"데이터베이스 재연결 실패: {str(exc2)}"
-            )
+                )
     return _db_conn
 
 

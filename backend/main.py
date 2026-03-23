@@ -190,6 +190,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+@app.get("/health")
+async def health_check():
+    """로드밸런서·브라우저·curl로 API 가용성 확인용 (DB 미검사)."""
+    return {"status": "ok", "service": "gongzalal-api"}
+
+
 # 미들웨어 설정 (CORS, 로깅, 에러 처리)
 app.add_middleware(
     CORSMiddleware,
