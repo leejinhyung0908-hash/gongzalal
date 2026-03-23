@@ -82,8 +82,8 @@ def _extract_user_id_from_cookie(http_request: Request, conn: psycopg.Connection
             row = cur.fetchone()
             # 레거시: social_accounts에 없으면 users.social_id 직접 조회
             if not row:
-            cur.execute("SELECT id FROM users WHERE social_id = %s", (social_id,))
-            row = cur.fetchone()
+                cur.execute("SELECT id FROM users WHERE social_id = %s", (social_id,))
+                row = cur.fetchone()
             if row:
                 _logger.info(f"[ChatRouter] JWT에서 DB user_id 추출 성공: {row[0]} (social_id={social_id})")
                 return row[0]
