@@ -472,7 +472,9 @@ function UserProfilePageContent() {
                                                 {providerInfo.emoji} {providerInfo.label}
                                             </span>
                                         )}
-                                        <span className="id-badge">ID: {loggedInUser.id}</span>
+                                        {loggedInUser && (
+                                            <span className="id-badge">ID: {loggedInUser.id}</span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
