@@ -93,6 +93,16 @@ def _extract_user_id_from_cookie(http_request: Request, conn: psycopg.Connection
     return None
 
 
+def _generation_method_from_flow_result(flow_result: dict) -> str | None:
+    """멘토링 RAG metadata.generation_method (exaone / raw / raw_fallback)."""
+    meta = flow_result.get("metadata")
+    if isinstance(meta, dict):
+        gm = meta.get("generation_method")
+        if isinstance(gm, str) and gm:
+            return gm
+    return None
+
+
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(
     request: ChatRequest,
@@ -161,6 +171,7 @@ async def chat_endpoint(
         # KoELECTRA 메타데이터 추출
         koelectra_raw = flow_result.get("koelectra")
         koelectra_meta = KoELECTRAMeta(**koelectra_raw) if koelectra_raw else None
+        generation_method = _generation_method_from_flow_result(flow_result)
 
         # BLOCK 처리 (KoELECTRA가 도메인 외 질문으로 판단)
         if result_mode == "block":
@@ -171,6 +182,7 @@ async def chat_endpoint(
                 mode="block",
                 top_k=request.top_k,
                 koelectra=koelectra_meta,
+                generation_method=generation_method,
             )
 
         # ExamFlow에서 처리된 경우 (exam 관련 요청)
@@ -182,6 +194,7 @@ async def chat_endpoint(
                 mode="exam",
                 top_k=request.top_k,
                 koelectra=koelectra_meta,
+                generation_method=generation_method,
             )
 
         # 멘토링 RAG에서 처리된 경우 (합격 수기 기반 답변)
@@ -194,6 +207,7 @@ async def chat_endpoint(
                 mode="mentoring",
                 top_k=request.top_k,
                 koelectra=koelectra_meta,
+                generation_method=generation_method,
             )
 
         # ChatFlow에서 답변이 생성된 경우 (study_plan, solving_log, chat 등)
@@ -205,6 +219,7 @@ async def chat_endpoint(
                 mode=result_mode,
                 top_k=request.top_k,
                 koelectra=koelectra_meta,
+                generation_method=generation_method,
             )
 
         # 일반 chat 처리 (ChatFlow에서 처리되지 않은 경우)
@@ -266,8 +281,12 @@ async def chat_endpoint(
                 answer = rag_answer(question, retrieved_docs)
 
         return ChatResponse(
-            answer=answer, retrieved_docs=retrieved_docs, mode=mode,
-            top_k=request.top_k, koelectra=koelectra_meta,
+            answer=answer,
+            retrieved_docs=retrieved_docs,
+            mode=mode,
+            top_k=request.top_k,
+            koelectra=koelectra_meta,
+            generation_method=None,
         )
     except HTTPException:
         raise

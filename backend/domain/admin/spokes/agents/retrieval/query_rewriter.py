@@ -43,6 +43,61 @@ _DOMAIN_KEYWORDS = {
     "오답", "약점", "취약", "보완", "전략",
 }
 
+# 현재 질문에 명시된 과목만 검색어에 남기기 (멀티턴에서 타 과목명이 섞이는 것 방지)
+_SUBJECT_NAMES_FOR_QUERY_FILTER = frozenset(
+    {
+        "국어",
+        "영어",
+        "한국사",
+        "행정법",
+        "행정학",
+        "경제학",
+        "헌법",
+        "민법",
+        "세법",
+        "회계학",
+        "사회",
+        "과학",
+        "수학",
+        "교육학",
+    }
+)
+
+
+def _subjects_in_text(text: str) -> set:
+    return {s for s in _SUBJECT_NAMES_FOR_QUERY_FILTER if s in text}
+
+
+def _filter_subject_keywords_for_current(current_question: str, keywords: List[str]) -> List[str]:
+    """현재 질문에 과목이 있으면, 맥락에서 추출한 다른 과목 키워드는 제외합니다."""
+    cur = _subjects_in_text(current_question)
+    if not cur:
+        return keywords
+    out: List[str] = []
+    for kw in keywords:
+        if kw in _SUBJECT_NAMES_FOR_QUERY_FILTER and kw not in cur:
+            continue
+        out.append(kw)
+    return out
+
+
+def _sanitize_subjects_in_rewritten(current_question: str, rewritten: str) -> str:
+    """LLM/규칙 재작성 결과에서 현재 질문과 충돌하는 과목명을 제거합니다."""
+    cur = _subjects_in_text(current_question)
+    if not cur:
+        return rewritten
+    out = rewritten
+    for s in _SUBJECT_NAMES_FOR_QUERY_FILTER:
+        if s in cur:
+            continue
+        if s in out:
+            out = out.replace(s, " ")
+    out = re.sub(r"\s+", " ", out).strip()
+    if len(out) < 3:
+        return current_question
+    return out
+
+
 # 불용어 (검색 쿼리에서 제거)
 _STOPWORDS = {
     "해줘", "해 줘", "해주세요", "알려줘", "알려 줘", "어떻게",
@@ -110,11 +165,15 @@ def rewrite_query_rule_based(
         # 이미 구체적인 질문이면 그대로 반환
         return current_question
 
-    # 이전 대화에서 키워드 추출
-    history_keywords = _extract_keywords_from_messages(chat_history)
+    # 이전 대화에서 키워드 추출 (현재 질문에 과목이 있으면 충돌 과목 제외)
+    history_keywords = _filter_subject_keywords_for_current(
+        current_question, _extract_keywords_from_messages(chat_history)
+    )
 
     # context_summary에서 키워드 추출
-    summary_keywords = [kw for kw in _DOMAIN_KEYWORDS if kw in context_summary]
+    summary_keywords = _filter_subject_keywords_for_current(
+        current_question, [kw for kw in _DOMAIN_KEYWORDS if kw in context_summary]
+    )
 
     # 현재 질문 정리
     cleaned_question = _clean_query(current_question)
@@ -133,6 +192,8 @@ def rewrite_query_rule_based(
         rewritten = " ".join(all_keywords) + " " + cleaned_question
     else:
         rewritten = cleaned_question
+
+    rewritten = _sanitize_subjects_in_rewritten(current_question, rewritten)
 
     logger.info(
         f"[QueryRewriter] 규칙 기반 재구성: "
@@ -175,7 +236,11 @@ def rewrite_query_with_llm(
         "당신은 검색 쿼리 최적화 전문가입니다.\n"
         "아래 대화 맥락과 현재 질문을 보고, "
         "벡터 검색에 적합한 독립적인 검색 쿼리를 한 문장으로 작성하세요.\n"
-        "규칙: 마크다운(**,##,\"\") 없이 평문 한국어로만 작성하세요.\n\n"
+        "규칙:\n"
+        "- 마크다운(**,##,\"\") 없이 평문 한국어로만 작성하세요.\n"
+        "- 현재 질문에 이미 과목명(국어·영어·한국사·행정법 등)이 있으면 그 과목만 사용하고, "
+        "대화 맥락에 있더라도 다른 과목명을 검색어에 새로 넣지 마세요.\n"
+        "- 예: 현재 질문이 '영어 교재 추천'이면 행정법·국어 등 다른 과목을 쓰지 마세요.\n\n"
         f"[대화 맥락 요약]\n{context_summary or '없음'}\n\n"
         f"[최근 대화]\n{history_text}\n\n"
         f"[현재 질문]\n{current_question}\n\n"
@@ -193,6 +258,7 @@ def rewrite_query_with_llm(
         # 마크다운 포맷 제거 (**"..."**, ##, 따옴표 등)
         import re
         rewritten = re.sub(r'\*+|#+|"', '', rewritten).strip()
+        rewritten = _sanitize_subjects_in_rewritten(current_question, rewritten)
 
         # 빈 결과이거나 너무 짧으면 규칙 기반 폴백
         if not rewritten or len(rewritten) < 5:

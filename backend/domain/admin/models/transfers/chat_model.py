@@ -46,6 +46,10 @@ class ChatResponse(BaseModel):
     koelectra: KoELECTRAMeta | None = Field(
         default=None, description="KoELECTRA 1차 분류 메타데이터 (디버그용)"
     )
+    generation_method: str | None = Field(
+        default=None,
+        description="멘토링 RAG 등: exaone | raw | raw_fallback (EXAONE 미사용/폴백 구분)",
+    )
 
 
 class QLoRARequest(BaseModel):

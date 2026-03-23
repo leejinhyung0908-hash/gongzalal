@@ -26,9 +26,11 @@ from backend.core.utils.embedding import generate_embedding
 from backend.core.llm.base import BaseLLM
 
 logger = logging.getLogger(__name__)
-_MENTORING_GENERATION_MAX_TIME_SEC = float(os.getenv("MENTORING_GENERATION_MAX_TIME_SEC", "20"))
-_MENTORING_EXAONE_CALL_TIMEOUT_SEC = float(os.getenv("MENTORING_EXAONE_CALL_TIMEOUT_SEC", "45"))
-_MENTORING_MAX_NEW_TOKENS_CPU = int(os.getenv("MENTORING_MAX_NEW_TOKENS_CPU", "24"))
+# Transformers: pipeline max_time. GGUF 경로는 max_time 미적용 → 바깥 타임아웃이 사실상 상한.
+# 바깥( EXAONE_CALL ) ≥ 안쪽( GENERATION_MAX ) 로 맞추는 것을 권장.
+_MENTORING_GENERATION_MAX_TIME_SEC = float(os.getenv("MENTORING_GENERATION_MAX_TIME_SEC", "90"))
+_MENTORING_EXAONE_CALL_TIMEOUT_SEC = float(os.getenv("MENTORING_EXAONE_CALL_TIMEOUT_SEC", "120"))
+_MENTORING_MAX_NEW_TOKENS_CPU = int(os.getenv("MENTORING_MAX_NEW_TOKENS_CPU", "20"))
 _MENTORING_MAX_NEW_TOKENS_GPU = int(os.getenv("MENTORING_MAX_NEW_TOKENS_GPU", "96"))
 
 

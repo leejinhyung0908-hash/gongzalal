@@ -13,6 +13,8 @@ type ChatResponse = {
   answer: string;
   retrieved_docs?: string[] | null;
   mode?: string;
+  /** 멘토링 RAG: exaone | raw | raw_fallback */
+  generation_method?: string | null;
   koelectra?: {
     gateway?: string | null;
     confidence?: number | null;

@@ -48,6 +48,16 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 KOELECTRA_CONFIDENCE_THRESHOLD = 0.7  # 이 이상이면 KoELECTRA 결과 신뢰
 
+# 운동·건강 등 라이프스타일 질문은 "일정/계획" 키워드보다 우선하여 멘토링 RAG로 보냄
+_LIFESTYLE_MENTORING_KEYWORDS = [
+    "운동", "헬스", "건강", "스트레칭", "수면", "루틴", "다이어트", "체력",
+    "헬스장", "근력", "유산소", "근육",
+]
+
+
+def _mentions_lifestyle_mentoring(text_lower: str) -> bool:
+    return any(kw in text_lower for kw in _LIFESTYLE_MENTORING_KEYWORDS)
+
 
 # ============================================================================
 # KoELECTRA 게이트웨이 분류 함수
@@ -117,10 +127,14 @@ def _classify_policy_based_detail(text: str) -> str:
     if any(kw in text_lower for kw in audio_keywords):
         return "audio_note"
 
-    # 학습 계획 조회/생성 관련 키워드
+    if _mentions_lifestyle_mentoring(text_lower):
+        return "mentoring"
+
+    # 학습 계획 조회/생성 관련 키워드 (단독 "일정"/"스케줄"은 운동 일정 등과 혼동되므로 제외)
     study_plan_keywords = [
-        "학습 계획", "공부 계획", "스케줄", "일정", "계획 세워",
+        "학습 계획", "공부 계획", "계획 세워",
         "계획 짜", "플랜", "플랜 세워", "플랜 짜",
+        "학습 일정", "공부 일정", "시험 일정", "학습 스케줄", "공부 스케줄",
         "약점 분석", "취약 분석", "성적 분석", "학습 분석",
         # 학습계획 조회 관련 (띄어쓰기 없는 형태 포함)
         "학습계획", "내 계획", "내 학습", "학습플랜",
@@ -204,13 +218,18 @@ def _classify_request_keyword_only(text: str) -> str:
     if any(kw in text_lower for kw in exam_keywords):
         return "exam"
 
-    # 학습 계획 조회/생성 관련 키워드
+    if _mentions_lifestyle_mentoring(text_lower):
+        return "mentoring"
+
+    # 학습 계획 조회/생성 관련 키워드 (단독 "일정"/"전략" 등은 오분류 방지를 위해 구체 구문만)
     study_plan_keywords = [
-        "학습 계획", "공부 계획", "스케줄", "일정", "계획 세워",
+        "학습 계획", "공부 계획", "계획 세워",
         "계획 짜", "플랜", "플랜 세워", "플랜 짜",
+        "학습 일정", "공부 일정", "시험 일정", "학습 스케줄", "공부 스케줄",
         "약점 분석", "취약 분석", "성적 분석", "학습 분석",
         "어떻게 공부", "어떻게 준비", "공부법",
-        "과목별", "약점", "취약", "보완", "전략",
+        "과목별", "약점", "취약", "보완",
+        "학습 전략", "공부 전략", "시험 전략",
         # 학습계획 조회 관련 (띄어쓰기 없는 형태 포함)
         "학습계획", "내 계획", "내 학습", "학습플랜",
         "계획 조회", "계획 보여", "계획 확인", "계획 알려",
