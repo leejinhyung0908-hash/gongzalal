@@ -367,6 +367,19 @@ def search_mentoring_knowledge(
                 continue
             results.append(d)
 
+        # 과목 질문인 경우, 과목 일치 결과를 우선 정렬
+        target_subject = _extract_target_subject(query)
+        if target_subject and results:
+            for d in results:
+                d["subject_match"] = _has_subject_match(d, target_subject)
+                # 벡터 유사도 기반은 유지하되, 과목 직접 매칭이면 소폭 가산하여 재정렬
+                d["ranking_score"] = d["similarity"] + (0.08 if d["subject_match"] else 0.0)
+            results.sort(key=lambda x: x.get("ranking_score", x["similarity"]), reverse=True)
+            logger.info(
+                f"[MentoringRAG] 과목 우선 재정렬 적용: target_subject={target_subject}, "
+                f"subject_match={sum(1 for r in results if r.get('subject_match'))}/{len(results)}"
+            )
+
         logger.info(
             f"[MentoringRAG] 검색 완료: query='{query[:50]}...', "
             f"결과={len(results)}건 (threshold={similarity_threshold})"
@@ -442,6 +455,43 @@ _SUBJECT_KEYWORDS: List[str] = [
 ]
 
 
+def _extract_target_subject(text: str) -> Optional[str]:
+    """질문/쿼리에서 과목 키워드를 추출합니다."""
+    if not text:
+        return None
+    return next((s for s in _SUBJECT_KEYWORDS if s in text), None)
+
+
+def _has_subject_match(row_dict: Dict[str, Any], target_subject: str) -> bool:
+    """검색 결과 row가 target_subject와 직접 매칭되는지 판별합니다."""
+    if not target_subject:
+        return False
+
+    subject_methods = row_dict.get("subject_methods") or {}
+    if isinstance(subject_methods, dict):
+        # "영어", "영어 학습법", "전체" 등 다양한 key 형태를 허용
+        for key in subject_methods.keys():
+            if target_subject in str(key):
+                return True
+
+        # [전체]만 있는 경우 본문 안에 과목 섹션이 있는지 확인
+        for key, value in subject_methods.items():
+            if key in ("전체", "전체 학습법") and isinstance(value, str):
+                if target_subject in value:
+                    return True
+
+    exam_info = row_dict.get("exam_info") or {}
+    subjects = exam_info.get("subjects") or []
+    if isinstance(subjects, list) and any(target_subject in str(s) for s in subjects):
+        return True
+
+    search_text = row_dict.get("search_text") or ""
+    if isinstance(search_text, str) and target_subject in search_text:
+        return True
+
+    return False
+
+
 def _extract_subject_section(full_text: str, target: str, max_chars: int = 400) -> str:
     """합쳐진 과목 학습법 텍스트에서 특정 과목 부분을 추출합니다."""
     import re
@@ -483,9 +533,7 @@ def build_mentoring_context(
     question이 주어지면 관련 과목 섹션을 우선 추출합니다.
     """
     # 질문에서 언급된 과목 탐지
-    target_subject = next(
-        (s for s in _SUBJECT_KEYWORDS if s in question), None
-    )
+    target_subject = _extract_target_subject(question)
     if not results:
         return ""
 
@@ -564,6 +612,12 @@ def build_mentoring_context(
             for subj, method in subject_methods.items():
                 if not method or not isinstance(method, str) or len(method.strip()) <= 5:
                     continue
+                if target_subject:
+                    # 과목 질문이면 해당 과목/전체 섹션만 컨텍스트에 포함
+                    is_target_key = target_subject in str(subj)
+                    is_whole_key = subj in ("전체", "전체 학습법")
+                    if not (is_target_key or is_whole_key):
+                        continue
                 m = method.strip()
                 if include_details:
                     # include_details 모드: 전체 텍스트
