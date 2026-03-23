@@ -822,6 +822,10 @@ def build_mentoring_prompt(
 
     멀티턴 대화인 경우 이전 대화 맥락을 포함하여 연속적인 답변이 가능합니다.
     """
+    is_alt_follow_up = any(
+        marker in question for marker in ("다른", "또", "말고", "추가", "더", "없어?", "없나?")
+    )
+
     parts = [
         "당신은 공무원 시험 합격을 위한 멘토입니다. "
         "아래 제공된 합격자 수기를 바탕으로, 사용자의 질문에 "
@@ -836,6 +840,12 @@ def build_mentoring_prompt(
         "7. 합격자를 언급할 때는 '합격자 프로필'에 명시된 내용(예: '2025년 국가직 9급 세무직 합격자')을 사용하고, 출처 플랫폼명(megagong 등)은 절대 사용하지 마세요.\n"
         "8. 답변은 한국어로 작성하세요.\n",
     ]
+    if is_alt_follow_up:
+        parts.append(
+            "9. 사용자가 '다른/또/말고/추가'처럼 대안을 요청한 후속 질문입니다. "
+            "반드시 서로 다른 합격자 프로필 2명 이상을 인용해 비교해서 답하세요. "
+            "직전 답변과 동일한 한 사례만 반복하지 마세요.\n"
+        )
 
     # ── 이전 대화 요약 ──
     if context_summary:
@@ -928,8 +938,12 @@ def generate_mentoring_answer_with_exaone(
     """EXAONE LLM을 사용하여 멘토링 RAG 답변을 생성합니다."""
     # 입력이 길수록 prefill 시간이 증가하므로 컨텍스트를 압축합니다.
     # question을 전달해 해당 과목 섹션을 우선 추출합니다.
+    is_alt_follow_up = any(
+        marker in question for marker in ("다른", "또", "말고", "추가", "더", "없어?", "없나?")
+    )
+    context_max_results = 3 if is_alt_follow_up else 2
     context = build_mentoring_context(
-        results, max_results=2, include_details=False, question=question
+        results, max_results=context_max_results, include_details=False, question=question
     )
     if len(context) > 1000:
         context = context[:1000] + "..."

@@ -63,9 +63,77 @@ _SUBJECT_NAMES_FOR_QUERY_FILTER = frozenset(
     }
 )
 
+_FOLLOW_UP_QUERY_MARKERS = (
+    "다른",
+    "또",
+    "말고",
+    "추가",
+    "더",
+    "없어?",
+    "없나?",
+    "있어?",
+    "있나?",
+)
+
 
 def _subjects_in_text(text: str) -> set:
     return {s for s in _SUBJECT_NAMES_FOR_QUERY_FILTER if s in text}
+
+
+def _is_follow_up_question_text(text: str) -> bool:
+    return any(marker in text for marker in _FOLLOW_UP_QUERY_MARKERS)
+
+
+def _latest_subject_from_user_history(chat_history: List[Dict[str, Any]]) -> Optional[str]:
+    """최근 사용자 발화에서 가장 마지막 과목 1개를 추출합니다."""
+    for msg in reversed(chat_history):
+        if msg.get("role") != "user":
+            continue
+        txt = msg.get("text", "")
+        subjects = [s for s in _SUBJECT_NAMES_FOR_QUERY_FILTER if s in txt]
+        if subjects:
+            # 동일 문장에 여러 과목이 있어도 마지막 하나만 상속
+            return subjects[-1]
+    return None
+
+
+def _normalize_subject_for_follow_up(
+    current_question: str,
+    rewritten: str,
+    chat_history: List[Dict[str, Any]],
+) -> str:
+    """후속 질문에서 과목 상속/단일 과목 정규화를 적용합니다."""
+    cur_subjects = _subjects_in_text(current_question)
+    rewritten_subjects = _subjects_in_text(rewritten)
+
+    # 현재 질문에 과목이 없는 후속 질문이면, 직전 사용자 과목 1개를 상속
+    if not cur_subjects and _is_follow_up_question_text(current_question):
+        inherited = _latest_subject_from_user_history(chat_history)
+        if inherited:
+            # 재작성 결과에서 다른 과목 제거 후 단일 과목으로 고정
+            cleaned = rewritten
+            for s in _SUBJECT_NAMES_FOR_QUERY_FILTER:
+                if s != inherited and s in cleaned:
+                    cleaned = cleaned.replace(s, " ")
+            cleaned = re.sub(r"\s+", " ", cleaned).strip()
+            if inherited not in cleaned:
+                cleaned = f"{inherited} {cleaned}".strip()
+            return cleaned
+
+    # 후속 질문 재작성에 과목이 2개 이상 섞이면 직전 과목으로 강제 정규화
+    if _is_follow_up_question_text(current_question) and len(rewritten_subjects) >= 2:
+        inherited = _latest_subject_from_user_history(chat_history)
+        if inherited:
+            cleaned = rewritten
+            for s in _SUBJECT_NAMES_FOR_QUERY_FILTER:
+                if s != inherited and s in cleaned:
+                    cleaned = cleaned.replace(s, " ")
+            cleaned = re.sub(r"\s+", " ", cleaned).strip()
+            if inherited not in cleaned:
+                cleaned = f"{inherited} {cleaned}".strip()
+            return cleaned
+
+    return rewritten
 
 
 def _filter_subject_keywords_for_current(current_question: str, keywords: List[str]) -> List[str]:
@@ -171,9 +239,13 @@ def rewrite_query_rule_based(
     )
 
     # context_summary에서 키워드 추출
-    summary_keywords = _filter_subject_keywords_for_current(
-        current_question, [kw for kw in _DOMAIN_KEYWORDS if kw in context_summary]
-    )
+    # 후속 질문 + 과목 미명시 상황에서는 summary 전역 키워드 주입을 줄여 과목 오염 방지
+    if _is_follow_up_question_text(current_question) and not _subjects_in_text(current_question):
+        summary_keywords = []
+    else:
+        summary_keywords = _filter_subject_keywords_for_current(
+            current_question, [kw for kw in _DOMAIN_KEYWORDS if kw in context_summary]
+        )
 
     # 현재 질문 정리
     cleaned_question = _clean_query(current_question)
@@ -194,6 +266,7 @@ def rewrite_query_rule_based(
         rewritten = cleaned_question
 
     rewritten = _sanitize_subjects_in_rewritten(current_question, rewritten)
+    rewritten = _normalize_subject_for_follow_up(current_question, rewritten, chat_history)
 
     logger.info(
         f"[QueryRewriter] 규칙 기반 재구성: "
@@ -259,6 +332,7 @@ def rewrite_query_with_llm(
         import re
         rewritten = re.sub(r'\*+|#+|"', '', rewritten).strip()
         rewritten = _sanitize_subjects_in_rewritten(current_question, rewritten)
+        rewritten = _normalize_subject_for_follow_up(current_question, rewritten, chat_history)
 
         # 빈 결과이거나 너무 짧으면 규칙 기반 폴백
         if not rewritten or len(rewritten) < 5:
